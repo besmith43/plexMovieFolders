@@ -8,6 +8,8 @@ namespace plexMovieFolders.cmd
 {
     public class Options
     {
+        public string directory { get; set; }
+        public bool parallel { get; set; }
         public bool helpFlag { get; set; }
         public string helpText { get; set; }
         public bool versionFlag { get; set; }
@@ -24,6 +26,8 @@ namespace plexMovieFolders.cmd
             helpTextBuilder.AppendLine($"{ versionText }");
             helpTextBuilder.AppendLine("Usage:  plexMovieFolders [OPTION]  ");
             helpTextBuilder.AppendLine("");
+            helpTextBuilder.AppendLine("    -d | --directory [path] Set the path to operate on");
+            helpTextBuilder.AppendLine("    -p | --parallel         Set the parallel flag to true");
             helpTextBuilder.AppendLine("    -V | --verbose          Set verbose mode");
             helpTextBuilder.AppendLine("    -v | --version          Display version message");
             helpTextBuilder.AppendLine("    -h | --help             Display this help message");

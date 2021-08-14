@@ -1,3 +1,5 @@
+#addin nuget:?package=Cake.FileHelpers&version=4.0.1
+
 var target = Argument("target", "Default");
 var DebugConfiguration = Argument("configuration", "Debug");
 var ReleaseConfiguration = Argument("configuration", "Release");
@@ -11,6 +13,10 @@ var dependentOutputFolder = $"{ outputFolder }/framework-dependent";
 Task("Clean")
     .Does(() => {
         CleanDirectory(outputFolder);
+        CleanDirectory("./test");
+        FileWriteText("./test/Priates.mp4", "");
+        FileWriteText("./test/Space (1080p HD).mp4", "");
+        FileWriteText("./test/War-libx265-slow-qp21.mp4", "");
     });
 
 Task("Version")
@@ -74,7 +80,11 @@ Task("Test")
 Task("Run")
     .IsDependentOn("Test")
     .Does(() => {
-        DotNetCoreRun(projFile, new DotNetCoreRunSettings{
+        var arguments = new ProcessArgumentBuilder();
+        arguments.Append("-p");
+        arguments.Append("--directory");
+        arguments.Append("./test");
+        DotNetCoreRun(projFile, arguments, new DotNetCoreRunSettings{
             Configuration = DebugConfiguration,
             NoRestore = true,
             NoBuild = true

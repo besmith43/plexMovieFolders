@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "blO0NPnew9/6+3MByNxvnyzxFZ6mek80ezPQF/1vN8bDP0AJhwFdPaw4dRSihLHnChpuT+D6WEMk9L78+vZ0jA==",
+  "success": true,
+  "projectFilePath": "/home/besmith/dev/plexMovieFolders/src/plexMovieFolders/plexMovieFolders.csproj",
+  "expectedPackageFiles": [
+    "/home/besmith/.nuget/packages/microsoft.netcore.app.host.win-x86/5.0.9/microsoft.netcore.app.host.win-x86.5.0.9.nupkg.sha512"
+  ],
+  "logs": []
+}

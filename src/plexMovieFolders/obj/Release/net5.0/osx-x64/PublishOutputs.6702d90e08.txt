@@ -1,0 +1,10 @@
+/home/besmith/dev/plexMovieFolders/output/self-contained/osx-x64/plexMovieFolders.pdb
+/home/besmith/dev/plexMovieFolders/output/self-contained/osx-x64/libSystem.IO.Compression.Native.dylib
+/home/besmith/dev/plexMovieFolders/output/self-contained/osx-x64/libSystem.Native.dylib
+/home/besmith/dev/plexMovieFolders/output/self-contained/osx-x64/libSystem.Net.Security.Native.dylib
+/home/besmith/dev/plexMovieFolders/output/self-contained/osx-x64/libSystem.Security.Cryptography.Native.Apple.dylib
+/home/besmith/dev/plexMovieFolders/output/self-contained/osx-x64/libSystem.Security.Cryptography.Native.OpenSsl.dylib
+/home/besmith/dev/plexMovieFolders/output/self-contained/osx-x64/libclrjit.dylib
+/home/besmith/dev/plexMovieFolders/output/self-contained/osx-x64/libcoreclr.dylib
+/home/besmith/dev/plexMovieFolders/output/self-contained/osx-x64/plexMovieFolders.Class.pdb
+/home/besmith/dev/plexMovieFolders/output/self-contained/osx-x64/plexMovieFolders

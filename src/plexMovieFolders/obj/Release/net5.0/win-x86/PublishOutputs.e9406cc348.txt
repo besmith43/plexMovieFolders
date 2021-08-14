@@ -1,0 +1,3 @@
+/home/besmith/dev/plexMovieFolders/output/framework-dependent/win-x86/plexMovieFolders.pdb
+/home/besmith/dev/plexMovieFolders/output/framework-dependent/win-x86/plexMovieFolders.Class.pdb
+/home/besmith/dev/plexMovieFolders/output/framework-dependent/win-x86/plexMovieFolders.exe

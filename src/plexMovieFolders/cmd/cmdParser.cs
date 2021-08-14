@@ -30,6 +30,15 @@ namespace plexMovieFolders.cmd
                     {
                         opts.verbose = true;
                     }
+                    else if (_args[i] == "-p" || _args[i] == "--parallel")
+                    {
+                        opts.parallel = true;
+                    }
+                    else if (_args[i] == "-d" || _args[i] == "--directory")
+                    {
+                        opts.directory = _args[i+1];
+                        i++;
+                    }
                     else
                     {
                         // place any unnamed or positional value checks
