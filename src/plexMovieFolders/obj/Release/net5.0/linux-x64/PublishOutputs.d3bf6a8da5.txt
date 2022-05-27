@@ -1,3 +1,0 @@
-/home/besmith/dev/plexMovieFolders/output/self-contained/linux-x64/plexMovieFolders.pdb
-/home/besmith/dev/plexMovieFolders/output/self-contained/linux-x64/plexMovieFolders.Class.pdb
-/home/besmith/dev/plexMovieFolders/output/self-contained/linux-x64/plexMovieFolders

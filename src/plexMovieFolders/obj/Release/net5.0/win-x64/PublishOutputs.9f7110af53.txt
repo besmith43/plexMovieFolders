@@ -1,7 +1,0 @@
-/home/besmith/dev/plexMovieFolders/output/self-contained/win-x64/plexMovieFolders.pdb
-/home/besmith/dev/plexMovieFolders/output/self-contained/win-x64/clrcompression.dll
-/home/besmith/dev/plexMovieFolders/output/self-contained/win-x64/clrjit.dll
-/home/besmith/dev/plexMovieFolders/output/self-contained/win-x64/coreclr.dll
-/home/besmith/dev/plexMovieFolders/output/self-contained/win-x64/mscordaccore.dll
-/home/besmith/dev/plexMovieFolders/output/self-contained/win-x64/plexMovieFolders.Class.pdb
-/home/besmith/dev/plexMovieFolders/output/self-contained/win-x64/plexMovieFolders.exe

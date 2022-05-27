@@ -1,0 +1,16 @@
+{
+	"configurations": {
+		"launch": {
+			"adapter": "CodeLLDB",
+			"filetypes": [ "rust" ],
+			"configuration": {
+				"request": "launch",
+				"program": "${workspaceRoot}/target/debug/plex_movie_managment"
+			},
+			"exception": {
+				"cpp_throw": "Y",
+				"cpp_catch": "N"
+			}
+		}
+	}
+}
