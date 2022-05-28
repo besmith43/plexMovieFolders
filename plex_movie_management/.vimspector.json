@@ -5,11 +5,14 @@
 			"filetypes": [ "rust" ],
 			"configuration": {
 				"request": "launch",
-				"program": "${workspaceRoot}/target/debug/plex_movie_managment"
+				"program": "${workspaceRoot}/target/debug/plex_movie_management",
+				"args": [ "--movie", "testing.mp4", "--year", "1984" ]
 			},
-			"exception": {
-				"cpp_throw": "Y",
-				"cpp_catch": "N"
+			"breakpoints": {
+				"exception": {
+					"cpp_throw": "Y",
+					"cpp_catch": "N"
+				}
 			}
 		}
 	}
