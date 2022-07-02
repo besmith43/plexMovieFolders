@@ -1,29 +1,247 @@
+extern crate fs_extra;
+use fs_extra::file::*;
+use fs_extra::dir::*;
+use fs_extra::error::*;
+
 use structopt::StructOpt;
+use regex::Regex;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::path::{Path, PathBuf};
 
+/// Blake Smith <besmith43@gmail.com>
+///
+/// plex_content_management is a cli application with the goal of renaming and organizing new content
+/// in my plex directories more automated
 #[derive(Debug, StructOpt)]
-struct Opt {
-    #[structopt(short, long, parse(from_os_str), default_value = "/volume1/docker/sabnzbd/Downloads/complete/")]
-    source: PathBuf,
+#[structopt(name = "plex_movie_management")]
+enum Opt {
+    Movie {
+        /// original movie file
+        #[structopt(short = "i", long, parse(from_os_str))]//, default_value = "/volume1/docker/sabnzbd/Downloads/complete/")]
+        input: PathBuf,
 
-    #[structopt(short, long, parse(from_os_str), default_value = "/volume1/Plex/Movies/")]
-    destination: PathBuf,
+        /// the movies directory of plex
+        #[structopt(short = "o", long, parse(from_os_str), default_value = "/volume1/Plex/Movies")]
+        output: PathBuf,
 
-    #[structopt(short, long)]
-    movie: String,
+        /// Movie Title
+        #[structopt(short = "m", long)]
+        movie: String,
 
-    #[structopt(short, long)]
-    year: u32,
+        /// year of the movie's release
+        #[structopt(short = "y", long)]
+        year: u32,
 
-    #[structopt(short, long)]
-    verbose: bool,
+        /// Will only print to the console the action that would have been taken
+        #[structopt(long)]
+        what_if: bool,
 
-    #[structopt(short, long)]
-    what_if: bool
+        /// Debug Mode
+        #[structopt(long)]
+        debug: bool,
+    },
+    TV {
+        /// original movie file
+        #[structopt(short = "i", long, parse(from_os_str))]
+        input: PathBuf,
+
+        /// the movies directory of plex
+        #[structopt(short = "o", long, parse(from_os_str), default_value = "/volume1/Plex/TV Shows")]
+        output: PathBuf,
+
+        /// series name
+        #[structopt(short = "s", long)]
+        series: String,
+
+        /// season number
+        #[structopt(short = "n", long, default_value = "1")]
+        season: u32,
+
+        /// episode number
+        #[structopt(short = "e", long, default_value = "1")]
+        episode: u32,
+
+        /// episode title
+        #[structopt(short = "t", long)]
+        title: Option<String>,
+
+        /// Will only print to the console the action that would have been taken
+        #[structopt(long)]
+        what_if: bool,
+
+        /// Debug Mode
+        #[structopt(short = "d", long)]
+        debug: bool, 
+    },
+    Search {
+        /// Debug Mode
+        #[structopt(long)]
+        debug: bool, 
+    },
 }
+
+static ATOMIC_DEBUG: AtomicBool = AtomicBool::new(false);
 
 fn main() {
-    let opt = Opt::from_args();
+    match Opt::from_args() {
+        Opt::Movie { input, output, movie, year, what_if, debug } => {
+            if debug {
+                ATOMIC_DEBUG.store(true, Ordering::Relaxed);
+            }
 
-    println!("{:?}", opt);
+            movie_main(input, output, movie, year, what_if);
+        },
+        Opt::TV { input, output, series, season, episode, title, what_if, debug } => {
+            if debug {
+                ATOMIC_DEBUG.store(true, Ordering::Relaxed);
+            }
+
+            tv_main(input, output, series, season, episode, title, what_if);
+        },
+        Opt::Search { debug } => {
+            if debug {
+                ATOMIC_DEBUG.store(true, Ordering::Relaxed);
+            }
+
+            search_main();
+        },
+    }
 }
+
+// =========================================
+// General Utilities
+// =========================================
+
+fn debug_println(message: String) {
+    if ATOMIC_DEBUG.load(Ordering::Relaxed) {
+        println!("{}", message);
+    }
+}
+
+// =========================================
+// Movie Functions
+// =========================================
+
+fn movie_main(source: PathBuf, destination: PathBuf, movie: String, year: u32, what_if: bool) {
+    if !check_year(year) {
+        eprintln!("the value for the year variable given isn't an appropriate year");
+        panic!();
+    }
+
+    // make plex directory
+    let final_dest_dir = mk_movie_dir(&movie, year, &destination, what_if);
+
+    // move to new directory with new name
+    move_movie_file(&source, &movie, year, &final_dest_dir, what_if);
+
+    // still need to look into removing original directory
+}
+
+fn move_movie_file(orig_file: &PathBuf, movie: &str, year: u32, dest_dir: &PathBuf, what_if: bool) {
+    let dest_file_name = build_movie_name(movie, year, orig_file.extension().unwrap().to_str().unwrap(), dest_dir);
+
+    if what_if {
+        println!("Move source file, {}, to destination, {}", orig_file.to_str().unwrap(), dest_file_name);
+    } else {
+        let c_options = fs_extra::file::CopyOptions::new();
+        fs_extra::file::move_file(orig_file, dest_file_name, &c_options).unwrap();
+    }
+}
+
+fn build_movie_name(movie_name: &str, year: u32, file_extension: &str, root_dir: &PathBuf)-> String {
+    let filename = format!("{}/{} ({}).{}", &root_dir.to_str().unwrap(), movie_name, year, file_extension);
+
+    debug_println(format!("filename generated by build_filename: {}", &filename));
+
+    filename
+}
+
+fn mk_movie_dir(movie_name: &str, year: u32, root_dir: &PathBuf, what_if: bool) -> PathBuf {
+    let movie_dir = format!("{}/{} ({})", &root_dir.to_str().unwrap(), movie_name, year);
+
+    if what_if {
+        println!("Make Movie home directory at {}", movie_dir);
+    } else {
+        fs_extra::dir::create_all(&movie_dir, false).unwrap();
+    }
+
+    PathBuf::from(&movie_dir)
+}
+
+fn check_year(year: u32) -> bool {
+    let re = Regex::new(r"\d{4}$").unwrap();
+
+    re.is_match(&year.to_string())
+}
+
+// =========================================
+// TV Show Functions
+// =========================================
+
+fn tv_main(input: PathBuf, output: PathBuf, series: String, season: u32, episode: u32, title: Option<String>, what_if: bool) {
+    let season_str = convert_number(season);
+    let episode_str = convert_number(episode);
+
+    let dest_dir = build_tv_output_path_name(&output, &series, &season_str);
+
+    if what_if {
+        println!("Make series and season directories at {}", dest_dir.to_str().unwrap());
+    } else {
+        fs_extra::dir::create_all(&dest_dir, false).unwrap();
+    }
+
+    let dest_path = build_episode_name(&series, title, &season_str, &episode_str, &input.extension().unwrap().to_str().unwrap(), &dest_dir);
+
+    if what_if {
+        println!("Move source, {}, to destination, {}", &input.to_str().unwrap(), &dest_path);
+    } else {
+        let c_options = fs_extra::file::CopyOptions::new();
+        fs_extra::file::move_file(input, dest_path, &c_options).unwrap();
+    }
+
+    // still need to look into removing original directory
+}
+
+fn build_tv_output_path_name(root_dir: &PathBuf, series_name: &str, season_number: &str) -> PathBuf {
+    let dest_path = format!("{}/{}/Season {}", root_dir.to_str().unwrap(), &series_name, &season_number);
+
+    debug_println(format!("the destination path created by build_tv_output_path is: {}", &dest_path));
+
+    PathBuf::from(dest_path)
+}
+
+// this needs to take the season number and turn it into a string that looks like xx
+fn convert_number(number: u32) -> String {
+    if number < 10 {
+        format!("0{}", number)
+    } else {
+        format!("{}", number)
+    }
+}
+
+fn build_episode_name(series_name: &str, episode_title: Option<String>, season_number: &str, episode_number: &str, file_extension: &str, root_dir: &PathBuf) -> String {
+    let filename: String;
+
+    if episode_title.is_some() {
+        filename = format!("{}/{} - s{}e{} - {}.{}", &root_dir.to_str().unwrap(), series_name, season_number, episode_number,episode_title.unwrap(), file_extension);
+    } else {
+        filename = format!("{}/{} - s{}e{}.{}", &root_dir.to_str().unwrap(), series_name, season_number, episode_number, file_extension);
+    }
+
+    debug_println(format!("filename generated by build_filename: {}", &filename));
+
+    filename
+}
+
+// =========================================
+// Search Functions
+// =========================================
+
+fn search_main() {
+
+}
+
+
+
+
+
