@@ -1,2 +1,3 @@
-[build]
-target = "x86_64-unknown-linux-gnu"
+[alias]
+b = "build"
+br = "build --release --target x86_64-unknown-linux-gnu"
