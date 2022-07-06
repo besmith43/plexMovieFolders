@@ -5,8 +5,8 @@ use fs_extra::error::*;
 
 use structopt::StructOpt;
 use regex::Regex;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::path::{Path, PathBuf};
+use dialoguer::{theme::ColorfulTheme, Input, Confirm, Select};
 
 /// Blake Smith <besmith43@gmail.com>
 ///
@@ -74,174 +74,469 @@ enum Opt {
         debug: bool, 
     },
     Search {
+        /// directory to search
+        #[structopt(short = "i", long, parse(from_os_str), default_value = "/volume1/docker/sabnzbd/Downloads/complete")]
+        input: PathBuf,
+
+        /// plex directory
+        #[structopt(short = "o", long, parse(from_os_str), default_value = "/volume1/Plex")]
+        output: PathBuf,
+
         /// Debug Mode
         #[structopt(long)]
         debug: bool, 
     },
 }
 
-static ATOMIC_DEBUG: AtomicBool = AtomicBool::new(false);
+// see link for why variables of the same name don't have to be paired with a colon
+// https://www.reddit.com/r/rust/comments/pai1o8/media_field_init_shorthand_in_rust/
 
 fn main() {
     match Opt::from_args() {
         Opt::Movie { input, output, movie, year, what_if, debug } => {
-            if debug {
-                ATOMIC_DEBUG.store(true, Ordering::Relaxed);
-            }
-
-            movie_main(input, output, movie, year, what_if);
+            Movie {
+                source: input,
+                destination: output,
+                year,
+                movie_name: movie,
+                what_if,
+                debug,
+            }.start();
         },
         Opt::TV { input, output, series, season, episode, title, what_if, debug } => {
-            if debug {
-                ATOMIC_DEBUG.store(true, Ordering::Relaxed);
-            }
-
-            tv_main(input, output, series, season, episode, title, what_if);
+            TvShow {
+                source: input,
+                destination: output,
+                series_name: series,
+                season_number: season,
+                episode_number: episode,
+                episode_title: title,
+                what_if,
+                debug,
+            }.start();
         },
-        Opt::Search { debug } => {
-            if debug {
-                ATOMIC_DEBUG.store(true, Ordering::Relaxed);
-            }
-
-            search_main();
+        Opt::Search { input, output, debug } => {
+            Search {
+                source: input,
+                destination: output,
+                debug,
+            }.start();
         },
     }
 }
 
-// =========================================
-// General Utilities
-// =========================================
+//=============================================================================
 
-fn debug_println(message: String) {
-    if ATOMIC_DEBUG.load(Ordering::Relaxed) {
-        println!("{}", message);
+struct Movie {
+    source: PathBuf,
+    destination: PathBuf,
+    year: u32,
+    movie_name: String,
+    what_if: bool,
+    debug: bool,
+}
+
+impl Movie {
+    fn check_year(&self) -> bool {
+        let re = Regex::new(r"\d{4}$").unwrap();
+
+        re.is_match(&self.year.to_string())
     }
 }
 
-// =========================================
-// Movie Functions
-// =========================================
+impl Shared for Movie {
+    fn start(&mut self) {
+        if !self.check_year() {
+            eprintln!("the value for the year variable given isn't an appropriate year");
+            std::process::exit(1);
+        }
 
-fn movie_main(source: PathBuf, destination: PathBuf, movie: String, year: u32, what_if: bool) {
-    if !check_year(year) {
-        eprintln!("the value for the year variable given isn't an appropriate year");
-        panic!();
+        self.build_destination_path();
+
+        self.build_filename();
+
+        self.check_for_duplicate();
+
+        self.move_operation();
+
+        self.remove_root_dir();
     }
 
-    // make plex directory
-    let final_dest_dir = mk_movie_dir(&movie, year, &destination, what_if);
+    fn build_destination_path(&mut self) {
+        let movie_dir = format!("{}/{} ({})",
+                                &self.destination.to_str().unwrap(),
+                                &self.movie_name,
+                                &self.year);
 
-    // move to new directory with new name
-    move_movie_file(&source, &movie, year, &final_dest_dir, what_if);
-
-    // still need to look into removing original directory
-}
-
-fn move_movie_file(orig_file: &PathBuf, movie: &str, year: u32, dest_dir: &PathBuf, what_if: bool) {
-    let dest_file_name = build_movie_name(movie, year, orig_file.extension().unwrap().to_str().unwrap(), dest_dir);
-
-    if what_if {
-        println!("Move source file, {}, to destination, {}", orig_file.to_str().unwrap(), dest_file_name);
-    } else {
-        let c_options = fs_extra::file::CopyOptions::new();
-        fs_extra::file::move_file(orig_file, dest_file_name, &c_options).unwrap();
-    }
-}
-
-fn build_movie_name(movie_name: &str, year: u32, file_extension: &str, root_dir: &PathBuf)-> String {
-    let filename = format!("{}/{} ({}).{}", &root_dir.to_str().unwrap(), movie_name, year, file_extension);
-
-    debug_println(format!("filename generated by build_filename: {}", &filename));
-
-    filename
-}
-
-fn mk_movie_dir(movie_name: &str, year: u32, root_dir: &PathBuf, what_if: bool) -> PathBuf {
-    let movie_dir = format!("{}/{} ({})", &root_dir.to_str().unwrap(), movie_name, year);
-
-    if what_if {
-        println!("Make Movie home directory at {}", movie_dir);
-    } else {
-        fs_extra::dir::create_all(&movie_dir, false).unwrap();
+        if self.what_if {
+            println!("Make Movie home directory at {}", movie_dir);
+        } else {
+            self.debug_println(format!("Make Movie home directory at {}", movie_dir));
+            fs_extra::dir::create_all(&movie_dir, false).unwrap();
+        }
+    
+        self.destination = PathBuf::from(&movie_dir);
     }
 
-    PathBuf::from(&movie_dir)
-}
+    fn build_filename(&mut self) {
+        let filename = format!("{}/{} ({}).{}",
+                                &self.destination.to_str().unwrap(),
+                                &self.movie_name,
+                                &self.year,
+                                &self.source.extension().unwrap().to_str().unwrap());
 
-fn check_year(year: u32) -> bool {
-    let re = Regex::new(r"\d{4}$").unwrap();
+        self.debug_println(format!("filename generated {}", &filename));
 
-    re.is_match(&year.to_string())
-}
-
-// =========================================
-// TV Show Functions
-// =========================================
-
-fn tv_main(input: PathBuf, output: PathBuf, series: String, season: u32, episode: u32, title: Option<String>, what_if: bool) {
-    let season_str = convert_number(season);
-    let episode_str = convert_number(episode);
-
-    let dest_dir = build_tv_output_path_name(&output, &series, &season_str);
-
-    if what_if {
-        println!("Make series and season directories at {}", dest_dir.to_str().unwrap());
-    } else {
-        fs_extra::dir::create_all(&dest_dir, false).unwrap();
+        self.destination = PathBuf::from(filename);
     }
 
-    let dest_path = build_episode_name(&series, title, &season_str, &episode_str, &input.extension().unwrap().to_str().unwrap(), &dest_dir);
-
-    if what_if {
-        println!("Move source, {}, to destination, {}", &input.to_str().unwrap(), &dest_path);
-    } else {
-        let c_options = fs_extra::file::CopyOptions::new();
-        fs_extra::file::move_file(input, dest_path, &c_options).unwrap();
+    fn check_for_duplicate(&self) {
+        if self.destination.exists() {
+            if Confirm::with_theme(&ColorfulTheme::default())
+                .with_prompt(format!("the file, {}, already exists\nwould you like to overwrite it?",
+                        &self.destination.to_str().unwrap()))
+                .default(true)
+                .interact()
+                .unwrap() {
+                self.debug_println("quitting application".to_string());
+                std::process::exit(0);
+            }
+        }
     }
 
-    // still need to look into removing original directory
-}
+    fn move_operation(&self) {
+        if self.what_if {
+            println!("Moving file from {} to {}",
+                     &self.source.to_str().unwrap(),
+                     &self.destination.to_str().unwrap());
+        } else {
+            self.debug_println(format!("Moving file from {} to {}",
+                     &self.source.to_str().unwrap(),
+                     &self.destination.to_str().unwrap()));
+            let c_options = fs_extra::file::CopyOptions::new();
+            let handle = |process_info: fs_extra::file::TransitProcess|  println!("{}", process_info.total_bytes);
+            fs_extra::file::move_file_with_progress(&self.source, &self.destination, &c_options, handle);
+        }
+    }
 
-fn build_tv_output_path_name(root_dir: &PathBuf, series_name: &str, season_number: &str) -> PathBuf {
-    let dest_path = format!("{}/{}/Season {}", root_dir.to_str().unwrap(), &series_name, &season_number);
+    fn remove_root_dir(&self) {
+        if self.what_if {
+            println!("Deleting parent folder {}",
+                     self.source.parent().unwrap().to_str().unwrap());
+        } else {
+            self.debug_println(format!("Deleting parent folder {}",
+                    self.source.parent().unwrap().to_str().unwrap()));
+            fs_extra::dir::remove(self.source.parent().unwrap());
+        }
+    }
 
-    debug_println(format!("the destination path created by build_tv_output_path is: {}", &dest_path));
-
-    PathBuf::from(dest_path)
-}
-
-// this needs to take the season number and turn it into a string that looks like xx
-fn convert_number(number: u32) -> String {
-    if number < 10 {
-        format!("0{}", number)
-    } else {
-        format!("{}", number)
+    fn debug_println(&self, message: String) {
+        if self.debug {
+            println!("{}", message);
+        }
     }
 }
 
-fn build_episode_name(series_name: &str, episode_title: Option<String>, season_number: &str, episode_number: &str, file_extension: &str, root_dir: &PathBuf) -> String {
-    let filename: String;
+//========================================================
 
-    if episode_title.is_some() {
-        filename = format!("{}/{} - s{}e{} - {}.{}", &root_dir.to_str().unwrap(), series_name, season_number, episode_number,episode_title.unwrap(), file_extension);
-    } else {
-        filename = format!("{}/{} - s{}e{}.{}", &root_dir.to_str().unwrap(), series_name, season_number, episode_number, file_extension);
+struct TvShow {
+    source: PathBuf,
+    destination: PathBuf,
+    series_name: String,
+    season_number: u32,
+    episode_number: u32,
+    episode_title: Option<String>,
+    what_if: bool,
+    debug: bool,
+}
+
+impl TvShow {
+    // this needs to take the season number and turn it into a string that looks like xx
+    fn convert_number(&self, number: u32) -> String {
+        if number < 10 {
+            format!("0{}", number)
+        } else {
+            format!("{}", number)
+        }
+    }
+}
+
+impl Shared for TvShow {
+    fn start(&mut self) {
+        self.build_destination_path();
+
+        self.build_filename();
+
+        self.check_for_duplicate();
+
+        self.move_operation();
+
+        self.remove_root_dir();
     }
 
-    debug_println(format!("filename generated by build_filename: {}", &filename));
+    // use this to overwrite the dest_dir with the new root dir created
+    fn build_destination_path(&mut self) {
+        let root_dir = format!("{}/{}/Season {}", 
+                                self.destination.to_str().unwrap(), 
+                                &self.series_name, 
+                                self.convert_number(self.season_number.clone()));
 
-    filename
+        if self.what_if {
+            println!("Make TV Show directory at {}", root_dir);
+        } else {
+            self.debug_println(format!("Make TV Show directory at {}", root_dir));
+            fs_extra::dir::create_all(&root_dir, false);
+        }
+
+        self.destination = PathBuf::from(root_dir);
+    }
+
+    // this depends on build_destination_path
+    // also overwrites the dest_dir
+    fn build_filename(&mut self) {
+        let filename: String;
+
+        if self.episode_title.is_some() {
+            filename = format!("{}/{} - s{}e{} - {}.{}",
+                                &self.destination.to_str().unwrap(),
+                                &self.series_name,
+                                self.convert_number(self.season_number),
+                                self.convert_number(self.episode_number),
+                                self.episode_title.as_ref().unwrap(),
+                                &self.source.extension().unwrap().to_str().unwrap());
+        } else {
+            filename = format!("{}/{} - s{}e{}.{}",
+                                &self.destination.to_str().unwrap(),
+                                &self.series_name,
+                                self.convert_number(self.season_number.clone()),
+                                self.convert_number(self.episode_number.clone()),
+                                &self.source.extension().unwrap().to_str().unwrap());
+        }
+
+        self.debug_println(format!("filename generated {}", &filename));
+
+        self.destination = PathBuf::from(filename);
+    }
+
+    fn check_for_duplicate(&self) {
+        if self.destination.exists() {
+            if Confirm::with_theme(&ColorfulTheme::default())
+                .with_prompt(format!("the file, {}, already exists\nwould you like to overwrite it?",
+                        &self.destination.to_str().unwrap()))
+                .default(true)
+                .interact()
+                .unwrap() {
+                self.debug_println("quitting application".to_string());
+                std::process::exit(0);
+            }
+        }
+    }
+
+    fn move_operation(&self) {
+        if self.what_if {
+            println!("Moving file from {} to {}",
+                     &self.source.to_str().unwrap(),
+                     &self.destination.to_str().unwrap());
+        } else {
+            self.debug_println(format!("Moving file from {} to {}",
+                     &self.source.to_str().unwrap(),
+                     &self.destination.to_str().unwrap()));
+            let c_options = fs_extra::file::CopyOptions::new();
+            let handle = |process_info: fs_extra::file::TransitProcess|  println!("{}", process_info.total_bytes);
+            fs_extra::file::move_file_with_progress(&self.source, &self.destination, &c_options, handle);
+        }
+    }
+
+    fn remove_root_dir(&self) {
+        if self.what_if {
+            println!("Deleting parent folder {}",
+                     self.source.parent().unwrap().to_str().unwrap());
+        } else {
+            self.debug_println(format!("Deleting parent folder {}",
+                    self.source.parent().unwrap().to_str().unwrap()));
+            fs_extra::dir::remove(self.source.parent().unwrap());
+        }
+    }
+
+    fn debug_println(&self, message: String) {
+        if self.debug {
+            println!("{}", message);
+        }
+    }
 }
 
-// =========================================
-// Search Functions
-// =========================================
+//=====================================================================
 
-fn search_main() {
-
+struct Search {
+    source: PathBuf,
+    destination: PathBuf,
+    debug: bool,
 }
 
+impl Search {
+    fn start(&self) {
+        let user_choice = &[
+            "Movie",
+            "TV Show",
+            "Skip",
+        ];
 
+        let mut options = fs_extra::dir::DirOptions::new();
+        options.depth = 1;
+        let dir_content = fs_extra::dir::get_dir_content2(&self.source, &options).unwrap();
 
+        // have to drop the first as it's the original directory
+        let mut directories = dir_content.directories;
+        directories.remove(0);
 
+        for directory in directories {
+            let user_choice_selection = Select::with_theme(&ColorfulTheme::default())
+                .with_prompt(format!("Is {} a TV episode or Movie", directory))
+                .items(user_choice)
+                .interact()
+                .unwrap();
+
+            if user_choice_selection == 0 {
+                self.new_movie(directory, &options);
+            } else if user_choice_selection == 1 {
+                self.new_episode(directory, &options);
+            } else {
+                println!("Skipping");
+            }
+        }
+    }
+
+    fn new_movie(&self, root_dir: String, options: &DirOptions) {
+        let contents = fs_extra::dir::get_dir_content2(&root_dir, &options).unwrap();
+
+        let source_file_selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Please select the movie file")
+            .default(0)
+            .items(&contents.files)
+            .interact()
+            .unwrap();
+
+        let movie_name_input: String = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("What is the name of the movie?")
+            .interact_text()
+            .unwrap();
+
+        let movie_year_input: String = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("What year was the movie released?")
+            .interact_text()
+            .unwrap();
+
+        Movie {
+            source: PathBuf::from(&contents.files[source_file_selection]),
+            destination: PathBuf::from(format!("{}/Movies", self.destination.to_str().unwrap())),
+            movie_name: movie_name_input,
+            year: movie_year_input.parse().unwrap(),
+            what_if: false,
+            debug: self.debug,
+        }.start();
+    }
+
+    fn new_episode(&self, root_dir: String, options: &DirOptions) {
+        let contents = fs_extra::dir::get_dir_content2(&root_dir, &options).unwrap();
+
+        let source_file_selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Please select the episode file")
+            .default(0)
+            .items(&contents.files)
+            .interact()
+            .unwrap();
+
+        let series_name_input: String = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("What is the name of the TV Show?")
+            .interact_text()
+            .unwrap();
+
+        let season_number_input: String = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("Which season is this episode from?")
+            .interact_text()
+            .unwrap();
+
+        let episode_number_input: String = Input::with_theme(&ColorfulTheme::default())
+            .with_prompt("What is the number of the episode?")
+            .interact_text()
+            .unwrap();
+
+        let episode_title_option: Option<String>;
+        if Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt("Do you know the episode title?")
+            .default(true)
+            .interact()
+            .unwrap() {
+            let title_temp: String = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt("What is the episode title?")
+                    .interact()
+                    .unwrap();
+
+            episode_title_option = Some(title_temp);
+        } else {
+            episode_title_option = None;
+        }
+
+        TvShow {
+            source: PathBuf::from(&contents.files[source_file_selection]),
+            destination: PathBuf::from(format!("{}/TV Shows", self.destination.to_str().unwrap())),
+            series_name: series_name_input,
+            season_number: season_number_input.parse().unwrap(),
+            episode_number: episode_number_input.parse().unwrap(),
+            episode_title: episode_title_option,
+            what_if: false,
+            debug: self.debug,
+        }.start();
+    }
+}
+/*
+impl Shared for Search {
+    fn start(&mut self) {
+
+    }
+
+    fn build_destination_path(&mut self) {
+
+    }
+
+    fn build_filename(&mut self) {
+
+    }
+
+    fn check_for_duplicate(&self) {
+
+    }
+
+    fn move_operation(&self) {
+
+    }
+
+    fn remove_root_dir(&self) {
+
+    }
+
+    fn debug_println(&self, message: String) {
+        if self.debug {
+            println!("{}", message);
+        }
+    }
+}
+*/
+//=======================================================================
+
+trait Shared {
+    fn debug_println(&self, message: String);
+
+    fn start(&mut self);
+
+    fn build_destination_path(&mut self);
+
+    fn build_filename(&mut self);
+
+    fn check_for_duplicate(&self);
+
+    fn move_operation(&self);
+
+    fn remove_root_dir(&self);
+}
 
