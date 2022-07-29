@@ -214,8 +214,7 @@ impl Shared for Movie {
                      &self.source.to_str().unwrap(),
                      &self.destination.to_str().unwrap()));
             let c_options = fs_extra::file::CopyOptions::new();
-            let handle = |process_info: fs_extra::file::TransitProcess|  println!("{}", process_info.total_bytes);
-            fs_extra::file::move_file_with_progress(&self.source, &self.destination, &c_options, handle);
+            fs_extra::file::move_file(&self.source, &self.destination, &c_options);
         }
     }
 
@@ -342,8 +341,7 @@ impl Shared for TvShow {
                      &self.source.to_str().unwrap(),
                      &self.destination.to_str().unwrap()));
             let c_options = fs_extra::file::CopyOptions::new();
-            let handle = |process_info: fs_extra::file::TransitProcess|  println!("{}", process_info.total_bytes);
-            fs_extra::file::move_file_with_progress(&self.source, &self.destination, &c_options, handle);
+            fs_extra::file::move_file(&self.source, &self.destination, &c_options);
         }
     }
 
