@@ -6,7 +6,7 @@ use fs_extra::error::*;
 use structopt::StructOpt;
 use regex::Regex;
 use std::path::{Path, PathBuf};
-use dialoguer::{theme::ColorfulTheme, Input, Confirm, Select};
+use dialoguer::{theme::ColorfulTheme, Input, Confirm, Select, FuzzySelect};
 
 /// Blake Smith <besmith43@gmail.com>
 ///
@@ -214,8 +214,7 @@ impl Shared for Movie {
                      &self.source.to_str().unwrap(),
                      &self.destination.to_str().unwrap()));
             let c_options = fs_extra::file::CopyOptions::new();
-            let handle = |process_info: fs_extra::file::TransitProcess|  println!("{}", process_info.total_bytes);
-            fs_extra::file::move_file_with_progress(&self.source, &self.destination, &c_options, handle);
+            fs_extra::file::move_file(&self.source, &self.destination, &c_options);
         }
     }
 
@@ -342,8 +341,7 @@ impl Shared for TvShow {
                      &self.source.to_str().unwrap(),
                      &self.destination.to_str().unwrap()));
             let c_options = fs_extra::file::CopyOptions::new();
-            let handle = |process_info: fs_extra::file::TransitProcess|  println!("{}", process_info.total_bytes);
-            fs_extra::file::move_file_with_progress(&self.source, &self.destination, &c_options, handle);
+            fs_extra::file::move_file(&self.source, &self.destination, &c_options);
         }
     }
 
@@ -446,10 +444,16 @@ impl Search {
             .interact()
             .unwrap();
 
-        let series_name_input: String = Input::with_theme(&ColorfulTheme::default())
+        let dest_path = format!("{}/TV Shows", self.destination.to_str().unwrap());
+        let dest_contents = fs_extra::dir::get_dir_content2(&dest_path, &options).unwrap();
+
+        // swap this to fuzzy select with a items option of the current folders of /Plex/TV Shows/*
+        let series_name_input: String = FuzzySelect::with_theme(&ColorfulTheme::default())
+            .items(&dest_contents.directories[..])
             .with_prompt("What is the name of the TV Show?")
-            .interact_text()
-            .unwrap();
+            .interact()
+            .unwrap()
+            .to_string();
 
         let season_number_input: String = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Which season is this episode from?")
@@ -479,7 +483,7 @@ impl Search {
 
         TvShow {
             source: PathBuf::from(&contents.files[source_file_selection]),
-            destination: PathBuf::from(format!("{}/TV Shows", self.destination.to_str().unwrap())),
+            destination: PathBuf::from(dest_path),
             series_name: series_name_input,
             season_number: season_number_input.parse().unwrap(),
             episode_number: episode_number_input.parse().unwrap(),
