@@ -448,12 +448,15 @@ impl Search {
         let dest_contents = fs_extra::dir::get_dir_content2(&dest_path, &options).unwrap();
 
         // swap this to fuzzy select with a items option of the current folders of /Plex/TV Shows/*
-        let series_name_input: String = FuzzySelect::with_theme(&ColorfulTheme::default())
+        let series_name_input_index = FuzzySelect::with_theme(&ColorfulTheme::default())
             .items(&dest_contents.directories[..])
             .with_prompt("What is the name of the TV Show?")
             .interact()
-            .unwrap()
-            .to_string();
+            .unwrap();
+
+        let series_name_input_path = &dest_contents.directories[series_name_input_index];
+        let series_name_input_vec: Vec<&str> = series_name_input_path.split('/').collect();
+        let series_name_input = series_name_input_vec[series_name_input_vec.len()-1];
 
         let season_number_input: String = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Which season is this episode from?")
