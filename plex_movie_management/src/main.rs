@@ -5,6 +5,7 @@ use fs_extra::error::*;
 
 use structopt::StructOpt;
 use regex::Regex;
+use std::borrow::Borrow;
 use std::path::{Path, PathBuf};
 use dialoguer::{theme::ColorfulTheme, Input, Confirm, Select, FuzzySelect};
 
@@ -448,15 +449,31 @@ impl Search {
         let dest_contents = fs_extra::dir::get_dir_content2(&dest_path, &options).unwrap();
 
         // swap this to fuzzy select with a items option of the current folders of /Plex/TV Shows/*
-        let series_name_input_index = FuzzySelect::with_theme(&ColorfulTheme::default())
+        let series_name_input_index_option = FuzzySelect::with_theme(&ColorfulTheme::default())
             .items(&dest_contents.directories[..])
-            .with_prompt("What is the name of the TV Show?")
-            .interact()
+            .with_prompt("What is the name of the TV Show?\nif not found in the list, press Esc")
+            .interact_opt()
             .unwrap();
 
-        let series_name_input_path = &dest_contents.directories[series_name_input_index];
-        let series_name_input_vec: Vec<&str> = series_name_input_path.split('/').collect();
-        let series_name_input = series_name_input_vec[series_name_input_vec.len()-1];
+        let series_name_input;
+
+        match series_name_input_index_option {
+            Some(index) => {
+                let series_name_input_path = &dest_contents.directories[index];
+                let series_name_input_vec: Vec<&str> = series_name_input_path.split('/').collect();
+                series_name_input = series_name_input_vec[series_name_input_vec.len()-1];
+            },
+            None => {
+                let temp_input: String = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt("New Series Name?")
+                    .interact_text()
+                    .unwrap();
+
+                series_name_input = Box::leak(temp_input.into_boxed_str());
+            }
+        }
+
+        println!("{}", &root_dir);
 
         let season_number_input: String = Input::with_theme(&ColorfulTheme::default())
             .with_prompt("Which season is this episode from?")
@@ -487,7 +504,7 @@ impl Search {
         TvShow {
             source: PathBuf::from(&contents.files[source_file_selection]),
             destination: PathBuf::from(dest_path),
-            series_name: series_name_input,
+            series_name: series_name_input.to_string(),
             season_number: season_number_input.parse().unwrap(),
             episode_number: episode_number_input.parse().unwrap(),
             episode_title: episode_title_option,
