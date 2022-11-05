@@ -476,12 +476,12 @@ impl Search {
         println!("{}", &root_dir);
 
         let season_number_input: String = Input::with_theme(&ColorfulTheme::default())
-            .with_prompt("Which season is this episode from?")
+            .with_prompt("Season number?")
             .interact_text()
             .unwrap();
 
         let episode_number_input: String = Input::with_theme(&ColorfulTheme::default())
-            .with_prompt("What is the number of the episode?")
+            .with_prompt("Episode number?")
             .interact_text()
             .unwrap();
 
