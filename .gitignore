@@ -2,3 +2,8 @@ target/
 output/
 test/
 .DS_Store
+
+bin/
+obj/
+
+
