@@ -58,7 +58,7 @@ public class Search
                 movie.Run();
             }
 
-            System.IO.Directory.Delete(directory);
+            System.IO.Directory.Delete(directory, true);  // true enables recursive deletion
         }
     }
 

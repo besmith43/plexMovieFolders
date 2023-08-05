@@ -7,7 +7,7 @@ namespace plex_importer
 {
     public class Movies
     {
-        public string PlexRoot = "/volumes1/Plex/Movies";
+        public string PlexRoot = "/volume1/Plex/Movies";
         public string Title { get; set; }
         public string Year { get; set; }
         public string source { get; set; }
@@ -22,7 +22,7 @@ namespace plex_importer
             AskForMovieTitle();
             AskForMovieYear();
 
-            destination = $"{PlexRoot}/{Title} {Year}";
+            destination = $"{PlexRoot}/{Title} ({Year})";
 
             MakeNewMovieDirectory();
             GenerateNewFilename();
@@ -57,7 +57,7 @@ namespace plex_importer
         private void MoveMovie()
         {
             Console.WriteLine($"Moving {source} to {destination}/{NewFilename}");
-            System.IO.Directory.Move(source, $"{destination}/{NewFilename}");
+            System.IO.File.Move(source, $"{destination}/{NewFilename}");
         }
     }
 }

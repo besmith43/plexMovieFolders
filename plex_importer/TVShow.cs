@@ -136,7 +136,7 @@ namespace plex_importer
         public string[] GetSuggestions(string text, int index)
         {
             List<string> directories = new List<string>();
-            string[] directoryEntries = System.IO.Directory.GetDirectories(_searchPath).Where(f => f.StartsWith(text)).ToArray();
+            string[] directoryEntries = System.IO.Directory.GetDirectories(_searchPath).Where(f => f.ToLower().Contains(text)).ToArray();
 
             foreach (string directoryName in directoryEntries)
             {
