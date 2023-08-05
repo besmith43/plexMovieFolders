@@ -158,7 +158,9 @@ namespace plex_importer
         // index - The index of the terminal cursor within {text}
         public string[] GetSuggestions(string text, int index)
         {
-            return new string[] { "no", "yes" };
+            var options = new string[] { "no", "yes" };
+
+            return options.Where(f => f.ToLower().Contains(text)).ToArray();
         }
     }
 }

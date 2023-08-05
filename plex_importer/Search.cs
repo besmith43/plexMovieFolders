@@ -126,7 +126,9 @@ class TVorMovieAutoCompleteHandler : IAutoCompleteHandler
     // index - The index of the terminal cursor within {text}
     public string[] GetSuggestions(string text, int index)
     {
-        return new string[] { "tvshow", "movie", "skip" };
+        var options = new string[] { "tvshow", "movie", "skip" };
+
+        return options.Where(f => f.ToLower().Contains(text)).ToArray();
     }
 }
 
