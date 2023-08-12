@@ -28,6 +28,23 @@ namespace plex_importer
             destination = $"{PlexRoot}/{SeriesName}/Season {ConvertNumber(SeasonNumber)}";
 
             GenerateNewFilename();
+
+            if (System.IO.File.Exists($"{destination}/{NewFilename}"))
+            {
+                Console.WriteLine("File already exists. Would you like to overwrite it? (yes/no)");
+                ReadLine.AutoCompletionHandler = new EpisodeTitleAutoCompleteHandler();
+                string answer = ReadLine.Read("> ");
+
+                if (answer == "no")
+                {
+                    return;
+                }
+                else
+                {
+                    Console.WriteLine($"Deleting {destination}/{NewFilename}");
+                    System.IO.File.Delete($"{destination}/{NewFilename}");
+                }
+            }
             MoveFile();
         }
 
