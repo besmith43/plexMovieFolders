@@ -12,8 +12,7 @@ import (
 	"github.com/bitfield/script"
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/huh/spinner"
-
-	. "github.com/tylerwince/godbg"
+	// . "github.com/tylerwince/godbg"
 )
 
 var dryRun bool = false
@@ -23,8 +22,8 @@ var rootDest string = "/volume1/Plex"
 func main() {
 	// var searchDir string
 
-	Dbg(os.Args)
-	Dbg(len(os.Args))
+	// Dbg(os.Args)
+	// Dbg(len(os.Args))
 
 	dryRunPtr := flag.Bool("dryrun", false, "dry run disables the move step")
 	sourcePtr := flag.String("source", "", "source search directory")
@@ -33,7 +32,7 @@ func main() {
 
 	dryRun = *dryRunPtr
 
-	Dbg(dryRun)
+	// Dbg(dryRun)
 
 	/*
 		if len(os.Args) == 1 {
@@ -52,7 +51,7 @@ func main() {
 		searchDir = *sourcePtr
 	}
 
-	Dbg(searchDir)
+	// Dbg(searchDir)
 
 	if *destPtr != "" {
 		rootDest = *destPtr
@@ -214,11 +213,11 @@ func processMovie(selection string) error {
 				Title(fmt.Sprintf("What year was  %s released?", selection)).
 				Value(&yearString).
 				Validate(func(ans string) error {
-					num, err := strconv.Atoi(ans)
+					_, err := strconv.Atoi(ans)
 					if err != nil {
 						return err
 					}
-					Dbg(num)
+					// Dbg(num)
 					return nil
 				}),
 		),
@@ -234,8 +233,8 @@ func processMovie(selection string) error {
 		return err
 	}
 
-	Dbg(title)
-	Dbg(year)
+	// Dbg(title)
+	// Dbg(year)
 
 	fileSplit := strings.Split(selection, ".")
 	fileExtension := fileSplit[len(fileSplit)-1]
@@ -247,7 +246,7 @@ func processMovie(selection string) error {
 
 	destination := fmt.Sprintf("%s/Movies/%s/%s", rootDest, movieDir, movieFileName)
 
-	Dbg(destination)
+	// Dbg(destination)
 
 	var confirmationResponse bool
 
@@ -336,11 +335,11 @@ func processTVShow(selection string) error {
 				Title(fmt.Sprintf("%s - Season Number: ", selection)).
 				Value(&seasonString).
 				Validate(func(ans string) error {
-					num, err := strconv.Atoi(ans)
+					_, err := strconv.Atoi(ans)
 					if err != nil {
 						return err
 					}
-					Dbg(num)
+					// Dbg(num)
 					return nil
 				}),
 		),
@@ -350,11 +349,11 @@ func processTVShow(selection string) error {
 				Title(fmt.Sprintf("%s - Episode Number: ", selection)).
 				Value(&episodeString).
 				Validate(func(ans string) error {
-					num, err := strconv.Atoi(ans)
+					_, err := strconv.Atoi(ans)
 					if err != nil {
 						return err
 					}
-					Dbg(num)
+					// Dbg(num)
 					return nil
 				}),
 		),
@@ -390,9 +389,9 @@ func processTVShow(selection string) error {
 		return err
 	}
 
-	Dbg(seriesTitle)
-	Dbg(season)
-	Dbg(episode)
+	// Dbg(seriesTitle)
+	// Dbg(season)
+	// Dbg(episode)
 
 	if season < 10 {
 		seasonString = fmt.Sprintf("0%d", season)
@@ -411,7 +410,7 @@ func processTVShow(selection string) error {
 
 	destination := fmt.Sprintf("%s/TV Shows/%s/Season %s/%s", rootDest, seriesTitle, seasonString, episodeFileName)
 
-	Dbg(destination)
+	// Dbg(destination)
 
 	var confirmationResponse bool
 
