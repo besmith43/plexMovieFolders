@@ -18,6 +18,9 @@ import (
 var dryRun bool = false
 var searchDir string = "/volume1/docker/sabnzbd/Downloads/complete"
 var rootDest string = "/volume1/Plex"
+var finalSrc string
+var finalDest string
+var finalDestDir string
 
 func main() {
 	// var searchDir string
@@ -283,9 +286,20 @@ func processMovie(selection string) error {
 		return nil
 	}
 
+	finalSrc = selection
+	finalDest = destination
+	finalDestDir = destinationDir
+
 	copyAction := func() {
-		os.MkdirAll(destinationDir, 0777)
-		os.Rename(selection, destination)
+		os.MkdirAll(finalDestDir, 0777)
+		err = os.Rename(finalSrc, finalDest)
+		if err != nil {
+			fmt.Println("Error!!!!")
+			fmt.Println(err)
+			// fmt.Printf("Source: %s\n", finalSrc)
+			// fmt.Printf("Destination: %s\n", finalDest)
+			// fmt.Printf("Destination Directory: %s\n", finalDestDir)
+		}
 	}
 
 	err = spinner.New().
@@ -449,9 +463,20 @@ func processTVShow(selection string) error {
 
 	// err = os.Rename(selection, destination)
 
+	finalSrc = selection
+	finalDest = destination
+	finalDestDir = destinationDir
+
 	copyAction := func() {
-		os.MkdirAll(destinationDir, 0777)
-		os.Rename(selection, destination)
+		os.MkdirAll(finalDestDir, 0777)
+		err = os.Rename(finalSrc, finalDest)
+		if err != nil {
+			fmt.Println("Error!!!!")
+			fmt.Println(err)
+			// fmt.Printf("Source: %s\n", finalSrc)
+			// fmt.Printf("Destination: %s\n", finalDest)
+			// fmt.Printf("Destination Directory: %s\n", finalDestDir)
+		}
 	}
 
 	err = spinner.New().
