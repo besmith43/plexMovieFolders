@@ -291,11 +291,13 @@ func processMovie(selection string) error {
 	finalDestDir = destinationDir
 
 	copyAction := func() {
-		os.MkdirAll(finalDestDir, 0777)
+		// os.MkdirAll(finalDestDir, 0777)
+		os.MkdirAll(finalDestDir, os.ModePerm)
 		err = os.Rename(finalSrc, finalDest)
 		if err != nil {
 			fmt.Println("Error!!!!")
-			fmt.Println(err)
+			// fmt.Println(err)
+			fmt.Println(err.Error())
 			// fmt.Printf("Source: %s\n", finalSrc)
 			// fmt.Printf("Destination: %s\n", finalDest)
 			// fmt.Printf("Destination Directory: %s\n", finalDestDir)
@@ -468,11 +470,13 @@ func processTVShow(selection string) error {
 	finalDestDir = destinationDir
 
 	copyAction := func() {
-		os.MkdirAll(finalDestDir, 0777)
+		// os.MkdirAll(finalDestDir, 0777)
+		os.MkdirAll(finalDestDir, os.ModePerm) // os.ModePerm is basically just 0777 anyways
 		err = os.Rename(finalSrc, finalDest)
 		if err != nil {
 			fmt.Println("Error!!!!")
-			fmt.Println(err)
+			// fmt.Println(err)
+			fmt.Println(err.Error())
 			// fmt.Printf("Source: %s\n", finalSrc)
 			// fmt.Printf("Destination: %s\n", finalDest)
 			// fmt.Printf("Destination Directory: %s\n", finalDestDir)
