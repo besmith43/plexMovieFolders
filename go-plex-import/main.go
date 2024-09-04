@@ -301,6 +301,11 @@ func processMovie(selection string) error {
 			// fmt.Printf("Source: %s\n", finalSrc)
 			// fmt.Printf("Destination: %s\n", finalDest)
 			// fmt.Printf("Destination Directory: %s\n", finalDestDir)
+			fmt.Println("attempting bitfield script")
+			err = script.Exec(fmt.Sprintf("mv %s %s", finalSrc, finalDest)).Close()
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 
@@ -480,6 +485,11 @@ func processTVShow(selection string) error {
 			// fmt.Printf("Source: %s\n", finalSrc)
 			// fmt.Printf("Destination: %s\n", finalDest)
 			// fmt.Printf("Destination Directory: %s\n", finalDestDir)
+			fmt.Println("attempting bitfield script")
+			err = script.Exec(fmt.Sprintf("mv %s %s", finalSrc, finalDest)).Close()
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 	}
 

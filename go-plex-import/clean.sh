@@ -49,8 +49,8 @@ mkdir -p test_dest_dir/Movies
 touch test_dest_dir/Movies/placeholder
 mkdir -p test_dest_dir/TV\ Shows/Eureka
 touch test_dest_dir/TV\ Shows/Eureka/placeholder
-mkdir -p test_dest_dir/TV\ Shows/Rick\ and \Morty
-touch test_dest_dir/TV\ Shows/Rick\ and \Morty/placeholder
+mkdir -p test_dest_dir/TV\ Shows/Rick\ and\ Morty
+touch test_dest_dir/TV\ Shows/Rick\ and\ Morty/placeholder
 mkdir -p test_dest_dir/TV\ Shows/UFO
 touch test_dest_dir/TV\ Shows/UFO/placeholder
 mkdir -p test_dest_dir/TV\ Shows/Zoids
