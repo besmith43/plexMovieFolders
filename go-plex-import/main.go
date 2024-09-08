@@ -488,7 +488,7 @@ func processTVShow(selection string) error {
 			fmt.Println("attempting bitfield script")
 			err = script.Exec(fmt.Sprintf("mv %s %s", finalSrc, finalDest)).Close()
 			if err != nil {
-				fmt.Println(err)
+				fmt.Println(err.Error())
 			}
 		}
 	}
