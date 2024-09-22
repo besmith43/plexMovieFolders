@@ -1,0 +1,9 @@
+from python:latest
+
+RUN apt update && apt upgrade -y
+
+WORKDIR /src
+
+COPY . .
+
+CMD /src/run.sh

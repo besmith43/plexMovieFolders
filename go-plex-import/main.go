@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/bitfield/script"
@@ -301,8 +303,9 @@ func processMovie(selection string) error {
 			// fmt.Printf("Source: %s\n", finalSrc)
 			// fmt.Printf("Destination: %s\n", finalDest)
 			// fmt.Printf("Destination Directory: %s\n", finalDestDir)
-			fmt.Println("attempting bitfield script")
-			err = script.Exec(fmt.Sprintf("mv %s %s", finalSrc, finalDest)).Close()
+			fmt.Println("attempting system mv")
+			// err = script.Exec(fmt.Sprintf("mv %s %s", finalSrc, finalDest)).Close()
+			err = sys_move(finalSrc, finalDest)
 			if err != nil {
 				fmt.Println(err)
 			}
@@ -485,8 +488,9 @@ func processTVShow(selection string) error {
 			// fmt.Printf("Source: %s\n", finalSrc)
 			// fmt.Printf("Destination: %s\n", finalDest)
 			// fmt.Printf("Destination Directory: %s\n", finalDestDir)
-			fmt.Println("attempting bitfield script")
-			err = script.Exec(fmt.Sprintf("mv %s %s", finalSrc, finalDest)).Close()
+			fmt.Println("attempting system mv")
+			err = sys_move(finalSrc, finalDest)
+			// err = script.Exec(fmt.Sprintf("mv %s %s", finalSrc, finalDest)).Close()
 			if err != nil {
 				fmt.Println(err.Error())
 			}
@@ -499,6 +503,26 @@ func processTVShow(selection string) error {
 		Run()
 
 	fmt.Println("Done")
+
+	return nil
+}
+
+func sys_move(src string, dest string) error {
+	binary, err := exec.LookPath("mv")
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
+
+	args := []string{"mv", src, dest}
+
+	env := os.Environ()
+
+	err = syscall.Exec(binary, args, env)
+	if err != nil {
+		fmt.Println(err)
+		return err
+	}
 
 	return nil
 }
