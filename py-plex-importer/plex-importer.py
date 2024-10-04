@@ -28,10 +28,14 @@ def main():
     # print(listdir(source))
 
     for item in listdir(source):
-        if isdir(join(source,item)):
-            dirs.append(item)
+        testdir = join(source,item)
+        if isdir(testdir):
+            # dirs.append(item)
+            dirs.append(testdir)
 
-    # print(dirs)
+    print(dirs)
+    # ['dir2', 'dir5', 'dir4', 'dir3', 'dir1']
+    # ['./test_root_dir/dir2', './test_root_dir/dir5', './test_root_dir/dir4', './test_root_dir/dir3', './test_root_dir/dir1']
 
 
 def old_func():
