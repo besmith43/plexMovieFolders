@@ -1,0 +1,20 @@
+
+
+check:
+    cargo check
+
+manual-test:
+    ./scripts/clean.sh
+    ./scripts/setup-manual-test.sh
+    cargo run -- -s "./test_root_dir" -d "./test_dest_dir"
+    tree test_dest_dir
+
+watch:
+    cargo bacon
+
+
+deploy:
+    ./scripts/publish.sh
+    ./scripts/push.sh
+
+
