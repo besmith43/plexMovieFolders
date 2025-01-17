@@ -27,6 +27,8 @@ impl TvShow {
 
 impl Shared for TvShow {
     fn start(&mut self) {
+        clearscreen::clear().unwrap();
+
         self.build_destination_path();
 
         self.build_filename();
@@ -86,7 +88,7 @@ impl Shared for TvShow {
     }
 
     fn move_operation(&self) {
-            println!("Moving file from {} to {}",
+            println!("Moving file from\n\t{}\nto\n\t{}",
                      &self.source.to_str().unwrap(),
                      &self.destination.to_str().unwrap());
             let c_options = fs_extra::file::CopyOptions::new();
