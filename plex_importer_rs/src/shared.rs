@@ -1,4 +1,3 @@
-
 pub trait Shared {
     fn start(&mut self);
 
@@ -12,4 +11,3 @@ pub trait Shared {
 
     fn remove_root_dir(&self);
 }
-

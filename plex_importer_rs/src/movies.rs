@@ -1,4 +1,3 @@
-
 use regex::Regex;
 use std::path::PathBuf;
 
@@ -11,7 +10,6 @@ pub struct Movie {
     pub movie_name: String,
 }
 
-
 impl Movie {
     fn check_year(&self) -> bool {
         let re = Regex::new(r"\d{4}$").unwrap();
@@ -19,7 +17,6 @@ impl Movie {
         re.is_match(&self.year.to_string())
     }
 }
-
 
 impl Shared for Movie {
     fn start(&mut self) {
@@ -42,23 +39,27 @@ impl Shared for Movie {
     }
 
     fn build_destination_path(&mut self) {
-        let movie_dir = format!("{}/{} ({})",
-                                &self.destination.to_str().unwrap(),
-                                &self.movie_name,
-                                &self.year);
+        let movie_dir = format!(
+            "{}/{} ({})",
+            &self.destination.to_str().unwrap(),
+            &self.movie_name,
+            &self.year
+        );
 
         println!("Make Movie home directory at {}", movie_dir);
         fs_extra::dir::create_all(&movie_dir, false).unwrap();
-    
+
         self.destination = PathBuf::from(&movie_dir);
     }
 
     fn build_filename(&mut self) {
-        let filename = format!("{}/{} ({}).{}",
-                                &self.destination.to_str().unwrap(),
-                                &self.movie_name,
-                                &self.year,
-                                &self.source.extension().unwrap().to_str().unwrap());
+        let filename = format!(
+            "{}/{} ({}).{}",
+            &self.destination.to_str().unwrap(),
+            &self.movie_name,
+            &self.year,
+            &self.source.extension().unwrap().to_str().unwrap()
+        );
 
         println!("filename generated {}", &filename);
 
@@ -73,21 +74,23 @@ impl Shared for Movie {
     }
 
     fn move_operation(&self) {
-        println!("Moving file from\n\t{}\nto\n\t{}",
-                &self.source.to_str().unwrap(),
-                &self.destination.to_str().unwrap());
+        println!(
+            "Moving file from\n\t{}\nto\n\t{}",
+            &self.source.to_str().unwrap(),
+            &self.destination.to_str().unwrap()
+        );
         let c_options = fs_extra::file::CopyOptions::new();
         let _ = fs_extra::file::move_file(&self.source, &self.destination, &c_options);
     }
 
     fn remove_root_dir(&self) {
-        println!("Deleting parent folder {}",
-                self.source.parent().unwrap().to_str().unwrap());
+        println!(
+            "Deleting parent folder {}",
+            self.source.parent().unwrap().to_str().unwrap()
+        );
         let _ = fs_extra::dir::remove(self.source.parent().unwrap());
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -110,8 +113,7 @@ mod tests {
         assert!(test_movie.check_year());
 
         test_movie.year = 5;
-        
+
         assert!(!test_movie.check_year());
     }
-
 }

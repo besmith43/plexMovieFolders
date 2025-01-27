@@ -10,7 +10,6 @@ use std::path::PathBuf;
 
 use clap::Parser;
 
-
 // importing my code
 mod movies;
 pub use crate::movies::Movie;
@@ -27,7 +26,11 @@ pub use self::search::Search; // either crate or self work for this imports
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    #[arg(short, long, default_value = "/volume1/docker/sabnzbd/Downloads/complete/new-uploads")]
+    #[arg(
+        short,
+        long,
+        default_value = "/volume1/docker/sabnzbd/Downloads/complete/new-uploads"
+    )]
     source_root: PathBuf,
     #[arg(short, long, default_value = "/volume1/Plex")]
     destination_root: PathBuf,
@@ -35,22 +38,16 @@ struct Args {
     verbose: bool,
 }
 
-
 fn main() {
     let args = Args::parse();
-    
+
     eprintln!("Source: {}", args.source_root.to_str().unwrap());
     eprintln!("Dest: {}", args.destination_root.to_str().unwrap());
     eprintln!("Verbose: {:?}", args.verbose);
 
-
     Search {
         source: args.source_root,
         destination: args.destination_root,
-    }.start();
+    }
+    .start();
 }
-
-
-
-
-

@@ -1,9 +1,6 @@
-
 use std::path::PathBuf;
 
 use crate::shared::Shared;
-
-
 
 pub struct TvShow {
     pub source: PathBuf,
@@ -42,10 +39,12 @@ impl Shared for TvShow {
 
     // use this to overwrite the dest_dir with the new root dir created
     fn build_destination_path(&mut self) {
-        let root_dir = format!("{}/{}/Season {}", 
-                                self.destination.to_str().unwrap(), 
-                                &self.series_name, 
-                                self.convert_number(self.season_number.clone()));
+        let root_dir = format!(
+            "{}/{}/Season {}",
+            self.destination.to_str().unwrap(),
+            &self.series_name,
+            self.convert_number(self.season_number.clone())
+        );
 
         println!("Make TV Show directory at {}", root_dir);
         let _ = fs_extra::dir::create_all(&root_dir, false);
@@ -59,20 +58,24 @@ impl Shared for TvShow {
         let filename: String;
 
         if self.episode_title.is_some() {
-            filename = format!("{}/{} - s{}e{} - {}.{}",
-                                &self.destination.to_str().unwrap(),
-                                &self.series_name,
-                                self.convert_number(self.season_number),
-                                self.convert_number(self.episode_number),
-                                self.episode_title.as_ref().unwrap(),
-                                &self.source.extension().unwrap().to_str().unwrap());
+            filename = format!(
+                "{}/{} - s{}e{} - {}.{}",
+                &self.destination.to_str().unwrap(),
+                &self.series_name,
+                self.convert_number(self.season_number),
+                self.convert_number(self.episode_number),
+                self.episode_title.as_ref().unwrap(),
+                &self.source.extension().unwrap().to_str().unwrap()
+            );
         } else {
-            filename = format!("{}/{} - s{}e{}.{}",
-                                &self.destination.to_str().unwrap(),
-                                &self.series_name,
-                                self.convert_number(self.season_number.clone()),
-                                self.convert_number(self.episode_number.clone()),
-                                &self.source.extension().unwrap().to_str().unwrap());
+            filename = format!(
+                "{}/{} - s{}e{}.{}",
+                &self.destination.to_str().unwrap(),
+                &self.series_name,
+                self.convert_number(self.season_number.clone()),
+                self.convert_number(self.episode_number.clone()),
+                &self.source.extension().unwrap().to_str().unwrap()
+            );
         }
 
         println!("filename generated {}", &filename);
@@ -88,32 +91,32 @@ impl Shared for TvShow {
     }
 
     fn move_operation(&self) {
-            println!("Moving file from\n\t{}\nto\n\t{}",
-                     &self.source.to_str().unwrap(),
-                     &self.destination.to_str().unwrap());
-            let c_options = fs_extra::file::CopyOptions::new();
-            let _ = fs_extra::file::move_file(&self.source, &self.destination, &c_options);
+        println!(
+            "Moving file from\n\t{}\nto\n\t{}",
+            &self.source.to_str().unwrap(),
+            &self.destination.to_str().unwrap()
+        );
+        let c_options = fs_extra::file::CopyOptions::new();
+        let _ = fs_extra::file::move_file(&self.source, &self.destination, &c_options);
     }
 
     fn remove_root_dir(&self) {
-        println!("Deleting parent folder {}",
-                self.source.parent().unwrap().to_str().unwrap());
+        println!(
+            "Deleting parent folder {}",
+            self.source.parent().unwrap().to_str().unwrap()
+        );
         let _ = fs_extra::dir::remove(self.source.parent().unwrap());
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-
     #[test]
     fn test_tv_show() {
         ()
     }
-
 
     #[test]
     fn test_tv_convert() {
@@ -131,4 +134,3 @@ mod tests {
         assert_eq!(test_tv_show.convert_number(10), "10");
     }
 }
-
