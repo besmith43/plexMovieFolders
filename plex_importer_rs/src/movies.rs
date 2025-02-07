@@ -25,8 +25,6 @@ impl Shared for Movie {
             std::process::exit(1);
         }
 
-        clearscreen::clear().unwrap();
-
         self.build_destination_path();
 
         self.build_filename();
@@ -36,6 +34,8 @@ impl Shared for Movie {
         self.move_operation();
 
         self.remove_root_dir();
+
+        clearscreen::clear().unwrap();
     }
 
     fn build_destination_path(&mut self) {

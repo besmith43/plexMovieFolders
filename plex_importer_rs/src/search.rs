@@ -18,7 +18,7 @@ pub struct Search {
 
 impl Search {
     pub fn start(&self) {
-        let user_choice = &["Movie", "TV Show", "Skip"];
+        let user_choice = &["Movie", "TV Show", "Skip", "Quit"];
 
         let mut options = fs_extra::dir::DirOptions::new();
         options.depth = 1;
@@ -50,6 +50,9 @@ impl Search {
                 self.new_movie(directory, &options);
             } else if user_choice_selection == "TV Show" {
                 self.new_episode(directory, &options);
+            } else if user_choice_selection == "Quit" {
+                println!("Quitting");
+                return;
             } else {
                 println!("Skipping");
             }

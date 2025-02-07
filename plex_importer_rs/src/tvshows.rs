@@ -24,8 +24,6 @@ impl TvShow {
 
 impl Shared for TvShow {
     fn start(&mut self) {
-        clearscreen::clear().unwrap();
-
         self.build_destination_path();
 
         self.build_filename();
@@ -35,6 +33,8 @@ impl Shared for TvShow {
         self.move_operation();
 
         self.remove_root_dir();
+
+        clearscreen::clear().unwrap();
     }
 
     // use this to overwrite the dest_dir with the new root dir created
