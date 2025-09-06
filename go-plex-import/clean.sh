@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 
 
-rm go-plex-import
+if [ -f go-plex-import ]; then
+    rm go-plex-import
+fi
 
+if [ -f pi ]; then
+    rm pi
+fi
 
 #test_root_dir
 #├── dir1

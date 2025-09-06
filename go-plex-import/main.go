@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,8 +19,12 @@ import (
 )
 
 var dryRun bool = false
-var searchDir string = "/volume1/docker/sabnzbd/Downloads/complete"
-var rootDest string = "/volume1/Plex"
+
+// var searchDir string = "/volume1/docker/sabnzbd/Downloads/complete"
+var searchDir string = "/Volumes/LightSpeed/containers/sabnzbd/config/Downloads/complete"
+
+// var rootDest string = "/volume1/Plex"
+var rootDest string = "/Volumes/Content_Vault/Plex"
 var finalSrc string
 var finalDest string
 var finalDestDir string
@@ -308,7 +313,16 @@ func processMovie(selection string) error {
 			err = sys_move(finalSrc, finalDest)
 			if err != nil {
 				fmt.Println(err)
+				os.Exit(1)
 			}
+		}
+
+		srcDir := filepath.Dir(finalSrc)
+		// fmt.Printf("source dir: %s\n", srcDir)
+		err = os.RemoveAll(srcDir)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
 		}
 	}
 
@@ -493,7 +507,16 @@ func processTVShow(selection string) error {
 			// err = script.Exec(fmt.Sprintf("mv %s %s", finalSrc, finalDest)).Close()
 			if err != nil {
 				fmt.Println(err.Error())
+				os.Exit(1)
 			}
+		}
+
+		srcDir := filepath.Dir(finalSrc)
+		// fmt.Printf("source dir: %s\n", srcDir)
+		err = os.RemoveAll(srcDir)
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
 		}
 	}
 

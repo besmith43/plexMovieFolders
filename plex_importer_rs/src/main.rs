@@ -29,10 +29,10 @@ struct Args {
     #[arg(
         short,
         long,
-        default_value = "/volume1/docker/sabnzbd/Downloads/complete/new-uploads"
+        default_value = "/Volumes/LightSpeed/containers/sabnzbd/config/Downloads/complete/new-uploads"
     )]
     source_root: PathBuf,
-    #[arg(short, long, default_value = "/volume1/Plex")]
+    #[arg(short, long, default_value = "/Volumes/Content_Vault/Plex")]
     destination_root: PathBuf,
     #[arg(short, long)] // defaults to false
     verbose: bool,

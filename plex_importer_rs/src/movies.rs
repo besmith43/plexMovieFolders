@@ -1,5 +1,10 @@
 use regex::Regex;
-use std::path::PathBuf;
+// use std::path::PathBuf;
+
+use indicatif::{ProgressBar, ProgressStyle};
+use std::fs::{self, File};
+use std::io::{self, BufReader, BufWriter, Read, Write};
+use std::path::{Path, PathBuf};
 
 use crate::shared::Shared;
 
@@ -74,13 +79,50 @@ impl Shared for Movie {
     }
 
     fn move_operation(&self) {
-        println!(
-            "Moving file from\n\t{}\nto\n\t{}",
-            &self.source.to_str().unwrap(),
-            &self.destination.to_str().unwrap()
-        );
-        let c_options = fs_extra::file::CopyOptions::new();
-        let _ = fs_extra::file::move_file(&self.source, &self.destination, &c_options);
+        // println!(
+        // "Moving file from\n\t{}\nto\n\t{}",
+        // &self.source.to_str().unwrap(),
+        // &self.destination.to_str().unwrap()
+        // );
+        // let c_options = fs_extra::file::CopyOptions::new();
+        // let _ = fs_extra::file::move_file(&self.source, &self.destination, &c_options);
+
+        // 1. Get the size of the source file to set the progress bar length.
+        let file_size = fs::metadata(&self.source).unwrap().len();
+
+        // 2. Set up the progress bar.
+        let pb = ProgressBar::new(file_size);
+        pb.set_style(ProgressStyle::default_bar()
+        .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+        .unwrap()
+        .progress_chars("#>-"));
+
+        // 3. Open the source file for reading.
+        let mut source_file = BufReader::new(File::open(&self.source).unwrap());
+
+        // 4. Create and open the destination file for writing.
+        let mut dest_file = BufWriter::new(File::create(&self.destination).unwrap());
+
+        // 5. Copy the data in chunks and update the progress bar.
+        let mut buffer = [0; 8192]; // 8 KB buffer for copying chunks
+        loop {
+            let bytes_read = source_file.read(&mut buffer).unwrap();
+            if bytes_read == 0 {
+                break;
+            }
+            dest_file.write_all(&buffer[..bytes_read]).unwrap();
+            pb.inc(bytes_read as u64);
+        }
+
+        // 6. Finish the progress bar and clear it from the terminal.
+        pb.finish_and_clear();
+
+        // 7. Close the files and remove the original source file.
+        // The File and BufWriter destructors handle closing, but we must
+        // explicitly remove the original file to complete the "move" operation.
+        fs::remove_file(&self.source).unwrap();
+
+        // Ok(())
     }
 
     fn remove_root_dir(&self) {
