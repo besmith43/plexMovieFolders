@@ -6,7 +6,6 @@
 //
 
 import Foundation
-@preconcurrency import Swiftline
 
 print("Hello, World!")
 
