@@ -14,7 +14,7 @@ else if (content.Count() == 0)
 }
 else
 {
-	<select>
+	<select id="select-uri">
 		<option value="-1">select content</option>
 		@foreach (var con in content)
 		{
@@ -37,7 +37,43 @@ else
 					</div>
 				</div>
 				<div class="modal-body">
-					<p>Some text in the modal.</p>
+					<h2 id="modal-content-selector">Movie</h2>
+					<br>
+					<div id="modal-movie-body">
+						<label>Movie Title</label>
+						<br>
+						<input id="movie-title">
+						<br>
+						<label>Movie Year</label>
+						<br>
+						<input id="movie-year" type="number">
+					</div>
+					<div id="modal-tvshow-body">
+						<label>TV Show Title</label>
+						<br>
+						<select id="tv-title">
+							<option value="-1">select content</option>
+							<option value="new">new series</option>
+							@foreach (var series in SharedData.tvshowList)
+							{
+								<option value="@series">@series</option>
+							}
+						</select>
+						<br>
+						<div id="new-series-title-block">
+							<label>New Series Name</label>
+							<br />
+							<input id="new-series-title" type="text" />
+							<br />
+						</div>
+						<label>TV Show Season Number</label>
+						<br>
+						<input id="tv-season" type="number">
+						<br>
+						<label>TV Show Episode Number</label>
+						<br>
+						<input id="tv-episode" type="number">
+					</div>
 				</div>
 				<div class="modal-footer">
 					<button id="modal-import-run" type="button" class="btn btn-primary" data-dismiss="modal">Run</button>
@@ -51,28 +87,51 @@ else
 
 	<script>
 
-		const movie_html = `@movie_modal_html`;
-		const tv_show_html = `@tvshow_modal_html`;
-
-		$('document').ready(function () {
-			console.log('document ready');
-			$('.modal-body').html(movie_html);
+		$(document).ready(function () {
+			$('#modal-tvshow-body').toggle();
+			$('#new-series-title-block').toggle();
 		});
-
 
 		$('#modal-movie').on('click', function () {
 			console.log('movie button clicked');
-			$('.modal-body').html(movie_html);
+			$('#modal-content-selector').html("Movie");
+			$('#modal-movie-body').toggle();
+			$('#modal-tvshow-body').toggle();
 		});
 
 
 		$('#modal-tv').on('click', function () {
 			console.log('tv show button clicked');
-			$('.modal-body').html(tv_show_html);
+			$('#modal-content-selector').html("TV Show");
+			$('#modal-tvshow-body').toggle();
+			$('#modal-movie-body').toggle();
+		});
+
+		$('#tv-title').on('change', function () {
+			let title = $('#tv-title').val();
+
+			if (title == "new") {
+				$('#new-series-title-block').toggle();
+			}
 		});
 
 
 		$('#modal-import-run').on('click', function () {
+			let uri = $('#select-uri').val();
+
+			console.log("uri: " + uri);
+
+			if (uri == -1) {
+				swal.fire({
+					"title": "Select Content",
+					"text": "You must select something",
+					"icon": "error",
+					"timer": 5000
+				});
+
+				return;
+			}
+
 			const selector = $('#modal-content-selector').html();
 			console.log('selector: ' + selector);
 
@@ -85,74 +144,87 @@ else
 				console.log("title: " + title);
 				console.log("year: " + year);
 
+				var data = {
+					'uri': uri,
+					'title': title,
+					'year': year
+				};
+
+
 				$.ajax({
 					type: "POST",
 					url: "api/movie",
 					contentType: "application/json",
-					data:
-					{
-						'title': title,
-						'year': year
-					},
+					data: JSON.stringify(data),
 					success: function () {
 						swal.fire({
 							title: "Movie Success",
 							text: "api success",
-							icon: "success"
+							icon: "success",
+							timer: 5000
+						});
+					},
+					error: function () {
+						swal.fire({
+							title: "Movie Error",
+							text: "Something Bad Happened",
+							icon: "error",
+							timer: 5000
 						});
 					}
 				});
 
-				@* $.post("api/movie",
-			{
-				'title': title,
-				'year': year
-			},
-			function () {
-				swal.fire({
-					title: "Movie Success",
-					text: "api success",
-					icon: "success"
-				});
-			}).fail(function () {
-				swal.fire({
-					title: "Movie Error",
-					text: "Something Bad Happened",
-					icon: "error"
-				});
-			}); *@
-													} else if (selector == "TV Show") {
+			} else if (selector == "TV Show") {
 				console.log("running tv show");
 
 				let title = $('#tv-title').val();
 				let season = $('#tv-season').val();
 				let episode = $('#tv-episode').val();
 
-				$.post("api/tvshow",
-					{
-						'title': title,
-						'season': season,
-						'episode': episode
-					},
-					function () {
+				if (title == "new") {
+					title = $('#new-series-title').val();
+				}
+
+				console.log("title: " + title);
+				console.log("season: " + season);
+				console.log("episode: " + episode);
+
+				var data = {
+					'uri': uri,
+					'title': title,
+					'season': season,
+					'episode': episode
+				};
+
+				$.ajax({
+					type: "POST",
+					url: "api/tvshow",
+					contentType: "application/json",
+					data: JSON.stringify(data),
+					success: function () {
 						swal.fire({
 							title: "TV Show Success",
 							text: "api success",
-							icon: "success"
+							icon: "success",
+							timer: 5000
 						});
-					}).fail(function () {
+					},
+					error: function () {
 						swal.fire({
 							title: "TV Show Error",
 							text: "Something Bad Happened",
-							icon: "error"
+							icon: "error",
+							timer: 5000
 						});
-					});
+					}
+				});
 			} else {
 				console.log("something bad happened");
 				swal.fire({
 					title: "Error",
 					text: "Something Bad Happened",
-					icon: "error"
+					icon: "error",
+					timer: 5000
 				});
 			}
 

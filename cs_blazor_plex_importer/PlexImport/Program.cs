@@ -52,6 +52,17 @@ if (String.IsNullOrEmpty(SharedData.tvshows))
 //     Console.WriteLine($"TV Show Path: {SharedData.tvshows}");
 // }
 
+
+if (!Directory.Exists(SharedData.tvshows))
+{
+    throw new Exception("TV Show Path doesn't exist");
+}
+
+string[] immediateSubdirectories = Directory.GetDirectories(SharedData.tvshows);
+
+SharedData.tvshowList = immediateSubdirectories.ToList<string>();
+
+
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -70,7 +81,7 @@ app.MapRazorComponents<App>();
 
 app.MapPost("/api/movie", (Movie movie) =>
 {
-    Console.WriteLine($"title: {movie.title}\nyear: {movie.year}");
+    Console.WriteLine($"uri: {movie.uri}\ntitle: {movie.title}\nyear: {movie.year}");
 
     return Results.Accepted();
 });
@@ -78,7 +89,7 @@ app.MapPost("/api/movie", (Movie movie) =>
 
 app.MapPost("/api/tvshow", (TVShow tv) =>
 {
-    Console.WriteLine($"title: {tv.title}\nseason: {tv.season}\nepisode: {tv.episode}");
+    Console.WriteLine($"uri: {tv.uri}\ntitle: {tv.title}\nseason: {tv.season}\nepisode: {tv.episode}");
 
     return Results.Accepted();
 });

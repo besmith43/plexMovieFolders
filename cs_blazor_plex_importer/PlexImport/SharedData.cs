@@ -12,6 +12,7 @@ public static class SharedData
 	public static string src = String.Empty;
 	public static string movie = String.Empty;
 	public static string tvshows = String.Empty;
+	public static List<string> tvshowList = new List<string>();
 }
 
 
