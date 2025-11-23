@@ -1,0 +1,191 @@
+@page "/plex"
+@attribute [StreamRendering]
+@using System.IO
+
+<h2>Plex Import</h2>
+
+@if (content == null)
+{
+	<p><em>Loading...</em></p>
+}
+else if (content.Count() == 0)
+{
+	<p>nothing found at @SharedData.src</p>
+}
+else
+{
+	<select>
+		<option value="-1">select content</option>
+		@foreach (var con in content)
+		{
+			<option value="@con">@con.Split('/')[2]</option>
+		}
+	</select>
+	<br />
+	<br />
+	<button type="button" class="btn btn-info btn-lg" data-toggle="modal" data-target="#myModal">Import</button>
+
+	<div id="myModal" class="modal fade" role="dialog">
+		<div class="modal-dialog">
+
+			<div class="modal-content">
+				<div class="modal-header">
+					<button type="button" class="close" data-dismiss="modal">&times;</button>
+					<div class="btn-group">
+						<button id="modal-movie" type="button" class="btn btn-primary">Movie</button>
+						<button id="modal-tv" type="button" class="btn btn-primary">TV Show</button>
+					</div>
+				</div>
+				<div class="modal-body">
+					<p>Some text in the modal.</p>
+				</div>
+				<div class="modal-footer">
+					<button id="modal-import-run" type="button" class="btn btn-primary" data-dismiss="modal">Run</button>
+					<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+				</div>
+			</div>
+
+		</div>
+	</div>
+
+
+	<script>
+
+		const movie_html = `@movie_modal_html`;
+		const tv_show_html = `@tvshow_modal_html`;
+
+		$('document').ready(function () {
+			console.log('document ready');
+			$('.modal-body').html(movie_html);
+		});
+
+
+		$('#modal-movie').on('click', function () {
+			console.log('movie button clicked');
+			$('.modal-body').html(movie_html);
+		});
+
+
+		$('#modal-tv').on('click', function () {
+			console.log('tv show button clicked');
+			$('.modal-body').html(tv_show_html);
+		});
+
+
+		$('#modal-import-run').on('click', function () {
+			const selector = $('#modal-content-selector').html();
+			console.log('selector: ' + selector);
+
+			if (selector == "Movie") {
+				console.log("running movie");
+
+				let title = $('#movie-title').val();
+				let year = $('#movie-year').val();
+
+				console.log("title: " + title);
+				console.log("year: " + year);
+
+				$.ajax({
+					type: "POST",
+					url: "api/movie",
+					contentType: "application/json",
+					data:
+					{
+						'title': title,
+						'year': year
+					},
+					success: function () {
+						swal.fire({
+							title: "Movie Success",
+							text: "api success",
+							icon: "success"
+						});
+					}
+				});
+
+				@* $.post("api/movie",
+			{
+				'title': title,
+				'year': year
+			},
+			function () {
+				swal.fire({
+					title: "Movie Success",
+					text: "api success",
+					icon: "success"
+				});
+			}).fail(function () {
+				swal.fire({
+					title: "Movie Error",
+					text: "Something Bad Happened",
+					icon: "error"
+				});
+			}); *@
+													} else if (selector == "TV Show") {
+				console.log("running tv show");
+
+				let title = $('#tv-title').val();
+				let season = $('#tv-season').val();
+				let episode = $('#tv-episode').val();
+
+				$.post("api/tvshow",
+					{
+						'title': title,
+						'season': season,
+						'episode': episode
+					},
+					function () {
+						swal.fire({
+							title: "TV Show Success",
+							text: "api success",
+							icon: "success"
+						});
+					}).fail(function () {
+						swal.fire({
+							title: "TV Show Error",
+							text: "Something Bad Happened",
+							icon: "error"
+						});
+					});
+			} else {
+				console.log("something bad happened");
+				swal.fire({
+					title: "Error",
+					text: "Something Bad Happened",
+					icon: "error"
+				});
+			}
+
+			// window.location.reload();
+		});
+	</script>
+}
+
+
+@code {
+	private List<string>? content;
+
+
+	private string movie_modal_html = """<h2 id="modal-content-selector">Movie</h2><br><label>Movie Title</label><br><input id="movie-title"><br><label>Movie Year</label><br><input id="movie-year" type="number">""";
+	private string tvshow_modal_html = """<h2 id="modal-content-selector">TV Show</h2><br><label>TV Show Title</label><br><input id="tv-title"><br><label>TV Show Season Number</label><br><input id="tv-season" type="number"><br><label>TV Show Episode Number</label><br><input id="tv-episode" type="number">""";
+
+
+	protected override async Task OnInitializedAsync()
+	{
+		if (!Directory.Exists(SharedData.src))
+		{
+			content = new List<string>();
+		}
+		else
+		{
+			string[] immediateSubdirectories = Directory.GetDirectories(SharedData.src);
+
+			@* foreach (string subdirectory in immediateSubdirectories)
+			{
+				Console.WriteLine(subdirectory);
+			} *@
+
+			content = immediateSubdirectories.ToList<string>();
+		}
+	}
+}
