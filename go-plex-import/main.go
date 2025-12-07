@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -297,39 +298,11 @@ func processMovie(selection string) error {
 	finalDest = destination
 	finalDestDir = destinationDir
 
-	copyAction := func() {
-		// os.MkdirAll(finalDestDir, 0777)
-		os.MkdirAll(finalDestDir, os.ModePerm)
-		err = os.Rename(finalSrc, finalDest)
-		if err != nil {
-			fmt.Println("Error!!!!")
-			// fmt.Println(err)
-			fmt.Println(err.Error())
-			// fmt.Printf("Source: %s\n", finalSrc)
-			// fmt.Printf("Destination: %s\n", finalDest)
-			// fmt.Printf("Destination Directory: %s\n", finalDestDir)
-			fmt.Println("attempting system mv")
-			// err = script.Exec(fmt.Sprintf("mv %s %s", finalSrc, finalDest)).Close()
-			err = sys_move(finalSrc, finalDest)
-			if err != nil {
-				fmt.Println(err)
-				os.Exit(1)
-			}
-		}
-
-		srcDir := filepath.Dir(finalSrc)
-		// fmt.Printf("source dir: %s\n", srcDir)
-		err = os.RemoveAll(srcDir)
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
+	os.MkdirAll(finalDestDir, os.ModePerm) // os.ModePerm is basically just 0777 anyways
+	if err := moveFileWithProgress(finalSrc, finalDest); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
-
-	err = spinner.New().
-		Title("Moving File to New Home...").
-		Action(copyAction).
-		Run()
 
 	fmt.Println("Done")
 
@@ -491,39 +464,11 @@ func processTVShow(selection string) error {
 	finalDest = destination
 	finalDestDir = destinationDir
 
-	copyAction := func() {
-		// os.MkdirAll(finalDestDir, 0777)
-		os.MkdirAll(finalDestDir, os.ModePerm) // os.ModePerm is basically just 0777 anyways
-		err = os.Rename(finalSrc, finalDest)
-		if err != nil {
-			fmt.Println("Error!!!!")
-			// fmt.Println(err)
-			fmt.Println(err.Error())
-			// fmt.Printf("Source: %s\n", finalSrc)
-			// fmt.Printf("Destination: %s\n", finalDest)
-			// fmt.Printf("Destination Directory: %s\n", finalDestDir)
-			fmt.Println("attempting system mv")
-			err = sys_move(finalSrc, finalDest)
-			// err = script.Exec(fmt.Sprintf("mv %s %s", finalSrc, finalDest)).Close()
-			if err != nil {
-				fmt.Println(err.Error())
-				os.Exit(1)
-			}
-		}
-
-		srcDir := filepath.Dir(finalSrc)
-		// fmt.Printf("source dir: %s\n", srcDir)
-		err = os.RemoveAll(srcDir)
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
+	os.MkdirAll(finalDestDir, os.ModePerm) // os.ModePerm is basically just 0777 anyways
+	if err := moveFileWithProgress(finalSrc, finalDest); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
-
-	err = spinner.New().
-		Title("Moving File to New Home...").
-		Action(copyAction).
-		Run()
 
 	fmt.Println("Done")
 
@@ -548,4 +493,86 @@ func sys_move(src string, dest string) error {
 	}
 
 	return nil
+}
+
+func moveFileWithProgress(source, destination string) error {
+	// Open source file
+	srcFile, err := os.Open(source)
+	if err != nil {
+		return fmt.Errorf("failed to open source file: %w", err)
+	}
+	defer srcFile.Close()
+
+	// Get file info for size
+	fileInfo, err := srcFile.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to get file info: %w", err)
+	}
+	fileSize := fileInfo.Size()
+
+	// Create destination file
+	destFile, err := os.Create(destination)
+	if err != nil {
+		return fmt.Errorf("failed to create destination file: %w", err)
+	}
+	defer destFile.Close()
+
+	// Copy with progress
+	fmt.Printf("Moving %s to %s\n", filepath.Base(source), filepath.Base(destination))
+	fmt.Printf("Size: %.2f MB\n\n", float64(fileSize)/(1024*1024))
+
+	reader := &ProgressReader{
+		Reader:   srcFile,
+		Total:    fileSize,
+		Progress: 0,
+	}
+
+	_, err = io.Copy(destFile, reader)
+	if err != nil {
+		return fmt.Errorf("failed to copy file: %w", err)
+	}
+
+	// Remove source file after successful copy
+	if err := os.Remove(source); err != nil {
+		return fmt.Errorf("failed to remove source file: %w", err)
+	}
+
+	return nil
+}
+
+type ProgressReader struct {
+	Reader   io.Reader
+	Total    int64
+	Progress int64
+}
+
+func (pr *ProgressReader) Read(p []byte) (int, error) {
+	n, err := pr.Reader.Read(p)
+	pr.Progress += int64(n)
+
+	// Update progress bar
+	pr.printProgress()
+
+	return n, err
+}
+
+func (pr *ProgressReader) printProgress() {
+	percent := float64(pr.Progress) / float64(pr.Total) * 100
+	barWidth := 50
+	filled := int(percent / 100 * float64(barWidth))
+
+	bar := ""
+	for i := 0; i < barWidth; i++ {
+		if i < filled {
+			bar += "█"
+		} else {
+			bar += "░"
+		}
+	}
+
+	fmt.Printf("\r[%s] %.1f%% (%.2f/%.2f MB)",
+		bar,
+		percent,
+		float64(pr.Progress)/(1024*1024),
+		float64(pr.Total)/(1024*1024))
 }

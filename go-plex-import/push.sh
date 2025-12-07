@@ -2,5 +2,5 @@
 
 
 # scp go-plex-import nas:home/bin
-scp pi plexmini4:.local/bin
+scp gpi plexmini4:.local/bin
 
