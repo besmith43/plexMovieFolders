@@ -118,7 +118,15 @@ func getFileOptions(root string) ([]huh.Option[string], error) {
 	var fileOptions []huh.Option[string]
 
 	for _, file := range files {
-		fileOptions = append(fileOptions, huh.NewOption(file, file))
+		key := file
+
+		if len(file) == 0 {
+			continue
+		} else if strings.Contains(file, root) {
+			key = strings.ReplaceAll(file, fmt.Sprintf("%s/", root), "")
+		}
+
+		fileOptions = append(fileOptions, huh.NewOption(key, file))
 	}
 
 	return fileOptions, nil
