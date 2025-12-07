@@ -21,7 +21,9 @@ fi
 #└── dir5
 #    └── file5.mp4
 
-rm -r test_root_dir
+if [ -d test_root_dir ]; then
+    rm -r test_root_dir
+fi
 
 mkdir -p test_root_dir/dir1
 mkfile -n 1g test_root_dir/dir1/file1.mkv
@@ -48,7 +50,9 @@ mkfile -n 1g test_root_dir/dir5/file5.mp4
 #    └── Zoids
 #        └── placeholder
 
-rm -r test_dest_dir
+if [ -d test_dest_dir ]; then
+    rm -r test_dest_dir
+fi
 
 mkdir -p test_dest_dir/Movies
 touch test_dest_dir/Movies/placeholder
@@ -60,5 +64,10 @@ mkdir -p test_dest_dir/TV\ Shows/UFO
 touch test_dest_dir/TV\ Shows/UFO/placeholder
 mkdir -p test_dest_dir/TV\ Shows/Zoids
 touch test_dest_dir/TV\ Shows/Zoids/placeholder
+
+
+if [ -f go.mod ]; then
+    go mod tidy
+fi
 
 
