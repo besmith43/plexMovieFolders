@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -68,6 +69,8 @@ func main() {
 		rootDest = *destPtr
 	}
 
+	ClearScreen()
+
 	selections, err := Select(searchDir)
 	if err != nil {
 		fmt.Println(err)
@@ -118,13 +121,13 @@ func getFileOptions(root string) ([]huh.Option[string], error) {
 	var fileOptions []huh.Option[string]
 
 	for _, file := range files {
-		key := file
+		key := filepath.Base(file)
 
 		if len(file) == 0 {
 			continue
-		} else if strings.Contains(file, root) {
-			key = strings.ReplaceAll(file, fmt.Sprintf("%s/", root), "")
-		}
+		} // else if strings.Contains(file, root) {
+		// key = strings.ReplaceAll(file, fmt.Sprintf("%s/", root), "")
+		// }
 
 		fileOptions = append(fileOptions, huh.NewOption(key, file))
 	}
@@ -312,7 +315,15 @@ func processMovie(selection string) error {
 		os.Exit(1)
 	}
 
-	fmt.Println("Done")
+	srcDir := filepath.Dir(finalSrc)
+	err = os.RemoveAll(srcDir)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n\nDone\n")
+	ClearScreen()
 
 	return nil
 }
@@ -478,7 +489,15 @@ func processTVShow(selection string) error {
 		os.Exit(1)
 	}
 
-	fmt.Println("Done")
+	srcDir := filepath.Dir(finalSrc)
+	err = os.RemoveAll(srcDir)
+	if err != nil {
+		fmt.Println(err.Error())
+		os.Exit(1)
+	}
+
+	fmt.Printf("\n\nDone\n")
+	ClearScreen()
 
 	return nil
 }
@@ -583,4 +602,16 @@ func (pr *ProgressReader) printProgress() {
 		percent,
 		float64(pr.Progress)/(1024*1024),
 		float64(pr.Total)/(1024*1024))
+}
+
+// ClearScreen clears the terminal screen based on the operating system.
+func ClearScreen() {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/c", "cls")
+	} else { // Linux, macOS, etc.
+		cmd = exec.Command("clear")
+	}
+	cmd.Stdout = os.Stdout
+	cmd.Run()
 }
