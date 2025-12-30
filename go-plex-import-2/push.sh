@@ -3,7 +3,7 @@
 
 # scp go-plex-import nas:home/bin
 
-if [ ! -f gpi ]; then
+if [ -f gpi ]; then
     echo "deleting old artifact" >&2
     rm gpi
 fi

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
@@ -50,8 +51,9 @@ func main() {
 		err := processDirectory(dir)
 		if err != nil {
 			fmt.Printf("Error processing directory %s: %v\n", dir, err)
+		} else {
+			ClearScreen()
 		}
-		ClearScreen()
 	}
 }
 
@@ -104,8 +106,12 @@ func processMovie(dir string) error {
 
 	fmt.Println("What is the movie title?")
 	var movieTitle string
-	_, err = fmt.Scanf("%s", &movieTitle)
-	if err != nil {
+
+	scanner := bufio.NewScanner(os.Stdin)
+	if scanner.Scan() {
+		movieTitle = scanner.Text()
+	}
+	if err := scanner.Err(); err != nil {
 		return err
 	}
 
@@ -119,6 +125,8 @@ func processMovie(dir string) error {
 	if movieYear < 1900 || movieYear > 2100 {
 		return fmt.Errorf("invalid year: %d", movieYear)
 	}
+
+	movieTitle = CleanStringForFilename(movieTitle)
 
 	destDir := filepath.Join(rootDest, "Movies", fmt.Sprintf("%s (%d)", movieTitle, movieYear))
 
@@ -234,8 +242,11 @@ func processTVShow(dir string) error {
 
 	if seriesName == "Add New Show" {
 		fmt.Println("Enter the name of the new TV show:")
-		_, err = fmt.Scanf("%s", &seriesName)
-		if err != nil {
+		scanner := bufio.NewScanner(os.Stdin)
+		if scanner.Scan() {
+			seriesName = scanner.Text()
+		}
+		if err := scanner.Err(); err != nil {
 			return err
 		}
 	}
@@ -253,6 +264,8 @@ func processTVShow(dir string) error {
 	if err != nil {
 		return err
 	}
+
+	seriesName = CleanStringForFilename(seriesName)
 
 	destDir := filepath.Join(rootDest, "TV Shows", seriesName, fmt.Sprintf("Season %02d", seasonNumber))
 	destFile := filepath.Join(destDir, fmt.Sprintf("%s - s%02de%02d%s", seriesName, seasonNumber, episodeNumber, filepath.Ext(selectedFile)))
@@ -285,6 +298,24 @@ func processTVShow(dir string) error {
 	}
 
 	return nil
+}
+
+func CleanStringForFilename(input string) string {
+	invalidChars := []rune{'<', '>', ':', '"', '/', '\\', '|', '?', '*', '\n', '\r', '\t', '\''}
+	cleaned := []rune{}
+	for _, r := range input {
+		invalid := false
+		for _, invalidChar := range invalidChars {
+			if r == invalidChar {
+				invalid = true
+				break
+			}
+		}
+		if !invalid {
+			cleaned = append(cleaned, r)
+		}
+	}
+	return string(cleaned)
 }
 
 func FuzzySearchTVShow(shows []string) (string, error) {
