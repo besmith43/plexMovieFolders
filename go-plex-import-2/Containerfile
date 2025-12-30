@@ -1,0 +1,9 @@
+from golang:1.23.1-alpine3.20 as build
+
+RUN apk update && apk add bash
+
+WORKDIR /src
+
+COPY . .
+
+CMD /src/run.sh
