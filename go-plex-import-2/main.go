@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/fatih/color"
@@ -72,7 +73,7 @@ func processDirectory(dir string) error {
 		return nil
 	} else if choice == "movie" {
 		return processMovie(dir)
-	} else if choice == "tv" {
+	} else if choice == "tv show" {
 		return processTVShow(dir)
 	}
 
@@ -413,31 +414,30 @@ const (
 
 func getContentType(dir string) (string, error) {
 	for {
-		fmt.Printf("What type of content is in directory %s?\n", dir)
-		fmt.Println("1. Movie")
-		fmt.Println("2. TV Show")
-		fmt.Println("3. Skip")
-		fmt.Println("4. Quit")
-		fmt.Print("Enter your choice (1-4): ")
+		items := []struct {
+			ID   string
+			Name string
+		}{
+			{"1", "Movie"},
+			{"2", "TV Show"},
+			{"3", "Skip"},
+			{"4", "Quit"},
+		}
 
-		var choice int
-		_, err := fmt.Scanf("%d", &choice)
+		idx, err := fuzzyfinder.Find(
+			items,
+			func(i int) string {
+				return items[i].Name
+			},
+			fuzzyfinder.WithPromptString(fmt.Sprintf("What kind of content is %s > ", dir)),
+		)
 		if err != nil {
 			return "", err
 		}
 
-		switch ContentType(choice - 1) {
-		case Movie:
-			return "movie", nil
-		case TVShow:
-			return "tv", nil
-		case Skip:
-			return "skip", nil
-		case Quit:
-			return "quit", nil
-		default:
-			fmt.Println("invalid choice, please try again")
-		}
+		choice := items[idx].Name
+		fmt.Printf("You selected: %s\n", choice)
+		return strings.ToLower(choice), nil
 	}
 }
 
