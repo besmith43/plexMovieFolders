@@ -52,6 +52,8 @@ func main() {
 		err := processDirectory(dir)
 		if err != nil {
 			fmt.Printf("Error processing directory %s: %v\n", dir, err)
+			fmt.Println("Skipping")
+			time.Sleep(2 * time.Second)
 		} else {
 			ClearScreen()
 		}
@@ -486,6 +488,14 @@ func moveFileWithProgress(source, destination string) error {
 		return fmt.Errorf("failed to get file info: %w", err)
 	}
 	fileSize := fileInfo.Size()
+
+	// Check if destination file already exists
+	_, err = os.Stat(destination)
+	if err == nil {
+		return fmt.Errorf("destination file already exists: %s", destination)
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("failed to check destination file: %w", err)
+	}
 
 	// Create destination file
 	destFile, err := os.Create(destination)
