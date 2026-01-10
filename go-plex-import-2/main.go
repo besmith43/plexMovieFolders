@@ -168,11 +168,15 @@ func processMovie(dir string) error {
 func YesOrNoPrompt(prompt string, file string) (bool, error) {
 	for {
 		color.Green(file)
-		fmt.Printf("%s (y/n): ", prompt)
+		fmt.Printf("%s (Y/n): ", prompt)
 		var response string
 		_, err := fmt.Scanf("%s", &response)
 		if err != nil {
-			return false, err
+			if err.Error() == "unexpected newline" {
+				return true, nil
+			} else {
+				return false, err
+			}
 		}
 
 		switch response {
@@ -236,6 +240,8 @@ func processTVShow(dir string) error {
 	if err != nil {
 		return err
 	}
+
+	time.Sleep(50 * time.Millisecond)
 
 	var seriesName string
 	seriesName, err = FuzzySearchTVShow(shows)
@@ -361,6 +367,10 @@ func FuzzySearchTVShow(shows []string) (string, error) {
 func getTVShowsList() ([]string, error) {
 	tvShowsDir := filepath.Join(rootDest, "TV Shows")
 
+	// Create a spinner
+	spinner := NewSpinner("Reading TV Shows directory...")
+	spinner.Start()
+	defer spinner.Stop()
 	entries, err := os.ReadDir(tvShowsDir)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read TV Shows directory: %w", err)
@@ -374,6 +384,44 @@ func getTVShowsList() ([]string, error) {
 	}
 
 	return shows, nil
+}
+
+// Spinner represents a simple terminal spinner
+type Spinner struct {
+	message string
+	stop    chan struct{}
+}
+
+// NewSpinner creates a new spinner
+func NewSpinner(message string) *Spinner {
+	return &Spinner{
+		message: message,
+		stop:    make(chan struct{}),
+	}
+}
+
+// Start starts the spinner animation
+func (s *Spinner) Start() {
+	go func() {
+		chars := []string{"|", "/", "-", "\\"}
+		i := 0
+		for {
+			select {
+			case <-s.stop:
+				fmt.Printf("\r%s\n", s.message)
+				return
+			default:
+				fmt.Printf("\r%s %s", s.message, chars[i%len(chars)])
+				time.Sleep(100 * time.Millisecond)
+				i++
+			}
+		}
+	}()
+}
+
+// Stop stops the spinner animation
+func (s *Spinner) Stop() {
+	close(s.stop)
 }
 
 func findVideoFiles(dir string) ([]string, error) {
