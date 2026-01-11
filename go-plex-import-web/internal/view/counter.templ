@@ -1,0 +1,121 @@
+package view
+
+import "strconv"
+
+templ Counter(count int) {
+	@Base() {
+		<div>
+			<div class="d-flex justify-content-center align-items-center" >
+				Counter: <span id="counter">{ strconv.Itoa(count) }</span>
+			</div>
+
+			<br>
+			<br>
+			<br>
+
+			<div class="d-flex justify-content-center align-items-center" >
+				<h2>Jquery Buttons</h2>
+			</div>
+			<div class="d-flex justify-content-center align-items-center gap-2">
+				<button class="btn btn-primary" id="plus_btn">
+					<i class="fa-solid fa-circle-plus"></i>
+				</button>
+
+				<button class="btn btn-primary" id="reset_btn">
+					<i class="fa-solid fa-arrow-rotate-left"></i>
+				</button>
+
+				<button class="btn btn-primary" id="minus_btn">
+					<i class="fa-solid fa-circle-minus"></i>
+				</button>
+			</div>
+
+
+
+			<div class="d-flex justify-content-center align-items-center" >
+				<h2>HTMX Buttons</h2>
+			</div>
+			<div class="d-flex justify-content-center align-items-center gap-2">
+				<button class="btn btn-primary"
+					hx-post="/plus"
+					hx-target="#counter"
+					hx-vals="js:{ counter: $('#counter').html() }">
+					<i class="fa-solid fa-circle-plus"></i>
+				</button>
+
+				<button class="btn btn-primary"
+					hx-get="/reset"
+					hx-target="#counter"
+					hx-on::after-request='Swal.fire({ title: "Reset Successfully", icon: "success", timer: 1500})'
+					hx-on::response-error='Swal.fire({ title: "Reset Failed", icon: "error", timer: 1500})'>
+					<i class="fa-solid fa-arrow-rotate-left"></i>
+				</button>
+
+				<button class="btn btn-primary"
+					hx-post="/minus"
+					hx-headers='{"Accept": "application/json"}'
+					hx-target="#counter"
+					hx-vals="js:{ counter: $('#counter').html() }"
+					hx-on::response-error='Swal.fire({ title: "Minus Failed", text: event.detail.xhr.responseText, icon: "error", timer: 1500})'>
+					<i class="fa-solid fa-circle-minus"></i>
+				</button>
+			</div>
+		</div>
+
+		<script>
+			$('#plus_btn').on('click', function () {
+				let counter = $('#counter').text()
+				console.log(counter)
+				$.post('/plus', {
+    				counter: counter,
+				})
+				.done(function(data) {
+    				console.log('Success:', data);
+					$('#counter').html(data)
+				})
+				.fail(function(xhr, status, error) {
+    				console.log('Error:', error);
+				});
+			})
+
+			$('#minus_btn').on('click', function () {
+				let counter = $('#counter').text()
+				console.log(counter)
+				$.post('/minus', {
+    				counter: counter,
+				})
+				.done(function(data) {
+    				console.log('Success:', data);
+					$('#counter').html(data)
+				})
+				.fail(function(xhr, status, error) {
+    				console.log('Error:', error);
+				});
+			})
+
+			$('#reset_btn').on('click', function () {
+				$.get('/reset', {
+				})
+				.done(function(data) {
+    				console.log('Success:', data);
+					$('#counter').html(data)
+				})
+				.fail(function(xhr, status, error) {
+    				console.log('Error:', error);
+				});
+			})
+		</script>
+	}
+}
+
+templ Plus(count int) {
+	{ strconv.Itoa(count) }
+}
+
+templ Minus(count int) {
+	{ strconv.Itoa(count) }
+}
+
+templ Reset() {
+	{ strconv.Itoa(0) }
+}

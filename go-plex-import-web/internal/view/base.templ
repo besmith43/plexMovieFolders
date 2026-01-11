@@ -1,0 +1,51 @@
+package view
+
+templ Base() {
+	<!DOCTYPE html>
+	<html lang="en" >
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width,initial-scale=1"/>
+			<title>Go Plex Import</title>
+			<link rel="icon" href="assets/images/favicon.png" type="image/png">
+			<link href="assets/css/site.css" rel="stylesheet"/>
+			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/css/bootstrap.min.css" integrity="sha512-2bBQCjcnw658Lho4nlXJcc6WkV/UxpE/sAokbXPxQNGqmNdQrWqtw26Ns9kFF/yG792pKR1Sx8/Y1Lf1XN4GKA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+			<script src="assets/js/site.js"></script>
+			<script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.7/htmx.min.js" integrity="sha512-IisGoumHahmfNIhP4wUV3OhgQZaaDBuD6IG4XlyjT77IUkwreZL3T3afO4xXuDanSalZ57Un+UlAbarQjNZCTQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+			<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.8/js/bootstrap.bundle.min.js" integrity="sha512-HvOjJrdwNpDbkGJIG2ZNqDlVqMo77qbs4Me4cah0HoDrfhrbA+8SBlZn1KrvAQw7cILLPFJvdwIgphzQmMm+Pw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+			<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js" integrity="sha512-v2CJ7UaYy4JwqLDIrZUI/4hqeoQieOmAZNXBeQyjo21dadnwR+8ZaIJVT8EE2iyI61OV8e6M8PP2/4hpQINQ/g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+			<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.23.0/sweetalert2.all.min.js" integrity="sha512-J+4Nt/+nieSNJjQGCPb8jKf5/wv31QiQM10bOotEHUKc9tB1Pn0gXQS6XXPtDoQhHHao5poTnSByMInzafUqzA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+		</head>
+		<body >
+			<main >
+				{ children... }
+			</main>
+
+	    	<script type="text/javascript">
+        		document.addEventListener("DOMContentLoaded", (event) => {
+            		document.body.addEventListener('htmx:beforeSwap', function (evt) {
+                		if (evt.detail.xhr.status === 422) {
+                    		// allow 422 responses to swap as we are using this as a signal that
+                    		// a form was submitted with bad data and want to rerender with the
+                    		// errors
+                    		//
+                    		// set isError to false to avoid error logging in console
+                    		evt.detail.shouldSwap = true;
+                    		evt.detail.isError = false;
+                		}
+            		});
+        		});
+    		</script>
+
+    		<script>
+        		document.addEventListener("htmx:configRequest", function (event) {
+            		// console.log("accept header: " + event.detail.headers['Accept'])
+            		if (event.detail.headers['Accept'] === undefined) {
+                		event.detail.headers['Accept'] = 'text/html';
+            		}
+        		});
+    		</script>
+		</body>
+	</html>
+}
