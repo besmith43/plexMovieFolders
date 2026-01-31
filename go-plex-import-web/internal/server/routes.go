@@ -10,6 +10,7 @@ import (
 
 func (s *Server) RegisterRoutes() http.Handler {
 	e := echo.New()
+
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
@@ -23,7 +24,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 
 	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
 		HTML5:      true,
-		Root:       "assets", // because files are located in `web` directory in `webAssets` fs
+		Root:       "assets",
 		Filesystem: http.FS(view.Files),
 	}))
 
@@ -31,6 +32,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 	e.POST("/plus", view.PostPlusWebHandler)
 	e.POST("/minus", view.PostMinusWebHandler)
 	e.GET("/reset", view.GetResetWebHandler)
+
+	e.GET("/plex", view.GetPlexHandler)
+	e.GET("/processFile/:name", view.GetProcessingDialogHandler)
+	e.POST("/processFile", view.PostProcessingDialogHandler)
 
 	return e
 }

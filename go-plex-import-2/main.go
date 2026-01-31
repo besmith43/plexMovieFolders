@@ -537,6 +537,8 @@ func moveFileWithProgress(source, destination string) error {
 	}
 	fileSize := fileInfo.Size()
 
+	// TODO: need to add a spinner here
+
 	// Check if destination file already exists
 	_, err = os.Stat(destination)
 	if err == nil {

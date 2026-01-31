@@ -1,0 +1,122 @@
+package view
+
+
+templ Plex(new_content []string) {
+	@Base() {
+		<h2>Plex Import</h2>
+
+		<ul>
+		for _, item := range new_content {
+			<li>
+				{ item }
+				<button class="btn btn-primary"
+				hx-get={ "/processFile/" + item }
+				hx-target="#processModalDiv"
+				hx-on::response-error='Swal.fire({ title: "Process File Error", icon: "error", timer: 1500})'>
+					<i class="fa-solid fa-file-circle-plus"></i>	
+				</button>
+			</li>
+		}
+		</ul>
+
+		<div id="processModalDiv"></div>
+
+	    <script type="text/javascript">
+        	document.addEventListener("DOMContentLoaded", (event) => {
+            	document.body.addEventListener('htmx:afterRequest', function (evt) {
+                	if (evt.detail.xhr.status === 200) {
+                    	evt.detail.shouldSwap = true;
+                    	evt.detail.isError = false;
+						bootstrap.Modal.getOrCreateInstance($("#processModal")).show()
+                	} else if (evt.detail.xhr.status === 204) {
+                    	evt.detail.shouldSwap = false;
+                    	evt.detail.isError = false;
+						$('#processModalDiv').html("<div></div>")
+						Swal.fire({ title: "No Video File found", icon: "error", timer: 1500});
+                	}
+            	});
+        	});
+    	</script>
+	}
+}
+
+
+templ ProcessingDialog(videoFile string, currentTVSeries []string) {
+	<div class="modal fade" id="processModal" tabindex="-1">
+  		<div class="modal-dialog">
+    		<div class="modal-content">
+      			<div class="modal-header">
+        			<h5 class="modal-title">Process Video File: { videoFile }</h5>
+        			<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      			</div>
+      			<div class="modal-body">
+					<form id="processModalForm" hx-post="/processFile" hx-swap="outerHTML">
+						<label for="newContent">{ videoFile }</label>
+						<br>
+						<div>
+							<input type="radio" id="contentTypeSelect" name="movieOrTV" value="movie" checked />
+							<label for="movie">Movie</label>
+						</div>
+						<div>
+							<input type="radio" id="contentTypeSelect" name="movieOrTV" value="tv" />
+							<label for="tv">TV Show</label>
+						</div>
+						<div id="movieFormPartial">
+							<label>Title: </label>
+							<input/>
+							<br>
+							<label>Year: </label>
+							<input/>
+						</div>
+						<div id="tvFormPartial" style="display: none;">
+							<label for="seriesName">Series: </label>
+							<select>
+								<option value="default"></option>
+								<option value="addNewSeries">add new series</option>
+								for _, item := range currentTVSeries {
+									<option value={ item }>{ item }</option>
+								}
+							</select>
+							<br>
+							<div id="newSeriesInput" style="display: none;">
+								<label>New Series Name: </label>
+								<input/>
+								<br>
+							</div>
+							<label>Season: </label>
+							<input/>
+							<br>
+							<label>Episode: </label>
+							<input/>
+						</div>
+					</form>
+      			</div>
+      			<div class="modal-footer">
+        			<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        			<button id="processFileBtn" hx-post="/processFile" type="button" class="btn btn-primary">Apply</button>
+      			</div>
+				<div id="loadingSpinner" class="spinner-border" role="status" style="display: none;">
+  					<span class="visually-hidden">Loading...</span>
+				</div>
+    		</div>
+  		</div>
+	</div>
+
+
+	<script>
+		$('input[type=radio]').on('change', function(evt) {
+			console.log(evt.target.defaultValue);
+			if (evt.target.defaultValue == "tv") {
+				$('#movieFormPartial').css("display", "none")
+				$('#tvFormPartial').css("display", "")
+			} else if (evt.target.defaultValue == "movie") {
+				$('#movieFormPartial').css("display", "")
+				$('#tvFormPartial').css("display", "none")
+			}
+		});
+
+		$('#processFileBtn').click('click', function(evt) {
+			$('#loadingSpinner').css("display", "")
+		});
+	</script>
+}

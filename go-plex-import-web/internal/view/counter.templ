@@ -13,28 +13,6 @@ templ Counter(count int) {
 			<br>
 			<br>
 
-			<div class="d-flex justify-content-center align-items-center" >
-				<h2>Jquery Buttons</h2>
-			</div>
-			<div class="d-flex justify-content-center align-items-center gap-2">
-				<button class="btn btn-primary" id="plus_btn">
-					<i class="fa-solid fa-circle-plus"></i>
-				</button>
-
-				<button class="btn btn-primary" id="reset_btn">
-					<i class="fa-solid fa-arrow-rotate-left"></i>
-				</button>
-
-				<button class="btn btn-primary" id="minus_btn">
-					<i class="fa-solid fa-circle-minus"></i>
-				</button>
-			</div>
-
-
-
-			<div class="d-flex justify-content-center align-items-center" >
-				<h2>HTMX Buttons</h2>
-			</div>
 			<div class="d-flex justify-content-center align-items-center gap-2">
 				<button class="btn btn-primary"
 					hx-post="/plus"
@@ -61,50 +39,6 @@ templ Counter(count int) {
 				</button>
 			</div>
 		</div>
-
-		<script>
-			$('#plus_btn').on('click', function () {
-				let counter = $('#counter').text()
-				console.log(counter)
-				$.post('/plus', {
-    				counter: counter,
-				})
-				.done(function(data) {
-    				console.log('Success:', data);
-					$('#counter').html(data)
-				})
-				.fail(function(xhr, status, error) {
-    				console.log('Error:', error);
-				});
-			})
-
-			$('#minus_btn').on('click', function () {
-				let counter = $('#counter').text()
-				console.log(counter)
-				$.post('/minus', {
-    				counter: counter,
-				})
-				.done(function(data) {
-    				console.log('Success:', data);
-					$('#counter').html(data)
-				})
-				.fail(function(xhr, status, error) {
-    				console.log('Error:', error);
-				});
-			})
-
-			$('#reset_btn').on('click', function () {
-				$.get('/reset', {
-				})
-				.done(function(data) {
-    				console.log('Success:', data);
-					$('#counter').html(data)
-				})
-				.fail(function(xhr, status, error) {
-    				console.log('Error:', error);
-				});
-			})
-		</script>
 	}
 }
 
