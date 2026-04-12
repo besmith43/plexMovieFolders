@@ -4,6 +4,7 @@ import com.example.jpi.AppConfig;
 import com.example.jpi.CandidateDirectory;
 import com.example.jpi.ImportExecutor;
 import com.example.jpi.ImportPlan;
+import com.example.jpi.ImportProgress;
 import com.example.jpi.ImportResult;
 import com.example.jpi.LibraryScanner;
 import com.example.jpi.MediaType;
@@ -28,6 +29,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import static dev.tamboui.toolkit.Toolkit.column;
 import static dev.tamboui.toolkit.Toolkit.list;
@@ -37,6 +39,8 @@ import static dev.tamboui.toolkit.Toolkit.textInput;
 
 public final class PlexImporterApp extends ToolkitApp {
     private static final String NEW_SERIES = "New Series";
+    private static final List<String> SPINNER_FRAMES = List.of("|", "/", "-", "\\");
+    private static final int MAX_VISIBLE_ROWS = 12;
 
     private final AppConfig config;
     private final LibraryScanner scanner;
@@ -63,6 +67,8 @@ public final class PlexImporterApp extends ToolkitApp {
     private final TextInputState movieYearState = new TextInputState();
     private int movieStandardCursor = 0;
     private final TextInputState movieEditionState = new TextInputState();
+    private final TextInputState directorySearchState = new TextInputState();
+    private boolean directorySearchActive = false;
 
     private List<String> existingSeries = List.of();
     private int seriesCursor = 0;
@@ -76,8 +82,15 @@ public final class PlexImporterApp extends ToolkitApp {
     private int resultsCursor = 0;
     private int finalActionCursor = 0;
     private ToolkitRunner.ScheduledAction cursorBlinkAction;
+    private ToolkitRunner.ScheduledAction spinnerAction;
     private boolean cursorVisible = true;
     private String killBuffer = "";
+    private int spinnerFrameIndex = 0;
+    private String loadingMessage = "Loading importer state...";
+    private String loadingDetail = "";
+    private ImportProgress currentImportProgress;
+    private int queuedImportCount = 0;
+    private boolean pendingSecondG = false;
 
     public PlexImporterApp(
             AppConfig config,
@@ -92,29 +105,73 @@ public final class PlexImporterApp extends ToolkitApp {
 
     @Override
     protected void onStart() {
-        try {
-            candidateDirectories = scanner.scanCandidateDirectories();
-            existingSeries = scanner.scanExistingSeries();
-            if (runner() != null) {
-                cursorBlinkAction = runner().scheduleRepeating(() ->
-                                runner().runOnRenderThread(() -> {
-                                    if (isInputScreen()) {
-                                        cursorVisible = !cursorVisible;
-                                    } else {
-                                        cursorVisible = true;
-                                    }
-                                }),
-                        Duration.ofMillis(500));
+        infoMessage = "SOURCE=" + config.sourceRoot() + "  DEST=" + config.destRoot();
+        startAnimations();
+        beginLibraryScan();
+    }
+
+    private void startAnimations() {
+        if (runner() == null) {
+            return;
+        }
+        cursorBlinkAction = runner().scheduleRepeating(() ->
+                        runner().runOnRenderThread(() -> {
+                            if (isInputScreen()) {
+                                cursorVisible = !cursorVisible;
+                            } else {
+                                cursorVisible = true;
+                            }
+                        }),
+                Duration.ofMillis(500));
+        spinnerAction = runner().scheduleRepeating(() ->
+                        runner().runOnRenderThread(() -> spinnerFrameIndex = (spinnerFrameIndex + 1) % SPINNER_FRAMES.size()),
+                Duration.ofMillis(120));
+    }
+
+    private void beginLibraryScan() {
+        screen = Screen.LOADING;
+        loadingMessage = "Scanning source and TV libraries...";
+        loadingDetail = "Waiting for candidate directories and existing TV series.";
+        clearError();
+        Thread thread = new Thread(() -> {
+            try {
+                List<CandidateDirectory> scannedDirectories = scanner.scanCandidateDirectories();
+                List<String> scannedSeries = scanner.scanExistingSeries();
+                onUiThread(() -> {
+                    candidateDirectories = scannedDirectories;
+                    existingSeries = scannedSeries;
+                    selectedDirectoryIndexes.clear();
+                    queuedVideos.clear();
+                    results.clear();
+                    currentVideo = null;
+                    currentVideoIndex = -1;
+                    directoryCursor = 0;
+                    seriesCursor = 0;
+                    resultsCursor = 0;
+                    finalActionCursor = 0;
+                    queuedImportCount = 0;
+                    currentImportProgress = null;
+                    pendingSecondG = false;
+                    resetDirectorySearch();
+                    clearError();
+                    screen = candidateDirectories.isEmpty() ? Screen.EMPTY : Screen.SELECT_DIRECTORIES;
+                });
+            } catch (IOException e) {
+                onUiThread(() -> {
+                    screen = Screen.ERROR;
+                    errorMessage = e.getMessage();
+                });
             }
-            if (candidateDirectories.isEmpty()) {
-                screen = Screen.EMPTY;
-            } else {
-                screen = Screen.SELECT_DIRECTORIES;
-            }
-            infoMessage = "SOURCE=" + config.sourceRoot() + "  DEST=" + config.destRoot();
-        } catch (IOException e) {
-            screen = Screen.ERROR;
-            errorMessage = e.getMessage();
+        }, "jpi-library-scan");
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private void onUiThread(Runnable action) {
+        if (runner() != null) {
+            runner().runOnRenderThread(action);
+        } else {
+            action.run();
         }
     }
 
@@ -124,12 +181,19 @@ public final class PlexImporterApp extends ToolkitApp {
             cursorBlinkAction.cancel();
             cursorBlinkAction = null;
         }
+        if (spinnerAction != null) {
+            spinnerAction.cancel();
+            spinnerAction = null;
+        }
     }
 
     @Override
     protected Element render() {
         return switch (screen) {
-            case LOADING -> shell("Loading", column(text("Loading importer state...").cyan()));
+            case LOADING -> shell("Loading", column(
+                    text(spinnerFrame() + " " + loadingMessage).cyan().bold(),
+                    text(loadingDetail).dim()
+            ).spacing(1));
             case EMPTY -> shell("No Videos Found", column(
                     text("No candidate directories with supported video files were found.").yellow(),
                     text("Press q to quit.").dim()
@@ -197,15 +261,17 @@ public final class PlexImporterApp extends ToolkitApp {
                     List.of("Skip", "Overwrite"),
                     conflictCursor,
                     text(currentPlan.destinationFile().toString()).yellow().overflow(Overflow.WRAP_WORD));
+            case IMPORTING -> renderImporting();
             case RESULTS -> renderResults();
         };
     }
 
     private Element renderDirectorySelection() {
+        List<Integer> visibleIndexes = filteredCandidateIndexes();
         List<String> rows = new ArrayList<>();
-        for (int i = 0; i < candidateDirectories.size(); i++) {
-            CandidateDirectory candidate = candidateDirectories.get(i);
-            String marker = selectedDirectoryIndexes.contains(i) ? "[x] " : "[ ] ";
+        for (int candidateIndex : visibleIndexes) {
+            CandidateDirectory candidate = candidateDirectories.get(candidateIndex);
+            String marker = selectedDirectoryIndexes.contains(candidateIndex) ? "[x] " : "[ ] ";
             String suffix = " (" + candidate.videos().size() + " video";
             if (candidate.videos().size() != 1) {
                 suffix += "s";
@@ -214,8 +280,9 @@ public final class PlexImporterApp extends ToolkitApp {
             rows.add(marker + candidate.displayName(config.sourceRoot()) + suffix);
         }
 
-        var directoryList = list(rows)
-                .selected(directoryCursor)
+        var directoryWindow = windowedRows(rows, directoryCursor);
+        var directoryList = list(directoryWindow.rows())
+                .selected(directoryWindow.selectedIndex())
                 .highlightColor(Color.CYAN)
                 .highlightSymbol("> ")
                 .title("Candidate Directories")
@@ -225,8 +292,17 @@ public final class PlexImporterApp extends ToolkitApp {
         return shell(
                 "Select Imports",
                 column(
-                        text("Select one or more directories. Space toggles. Enter begins the wizard.").dim(),
-                        directoryList,
+                        text(directorySearchActive
+                                ? "Search candidates. Type to filter. Enter closes search."
+                                : "Select one or more directories. Space toggles. / searches. Enter begins the wizard. gg/G jump.").dim(),
+                        textInput(directorySearchState)
+                                .focusable(false)
+                                .showCursor(directorySearchActive && cursorVisible)
+                                .cursorRequiresFocus(false)
+                                .title("Search")
+                                .rounded()
+                                .focusedBorderColor(Color.CYAN),
+                        rows.isEmpty() ? text("No candidate directories match the current search.").yellow() : directoryList,
                         footerLine()
                 ).spacing(1))
                 .focusable()
@@ -243,8 +319,9 @@ public final class PlexImporterApp extends ToolkitApp {
             List<String> options,
             int selectedIndex,
             Element extra) {
-        var optionList = list(options)
-                .selected(Math.max(0, Math.min(selectedIndex, options.size() - 1)))
+        var optionWindow = windowedRows(options, selectedIndex);
+        var optionList = list(optionWindow.rows())
+                .selected(optionWindow.selectedIndex())
                 .highlightColor(Color.CYAN)
                 .highlightSymbol("> ")
                 .rounded()
@@ -283,6 +360,24 @@ public final class PlexImporterApp extends ToolkitApp {
                 .onKeyEvent(this::handleInputScreenKey);
     }
 
+    private Element renderImporting() {
+        ImportProgress progress = currentImportProgress;
+        long copied = progress == null ? 0L : progress.bytesCopied();
+        long total = progress == null ? 0L : progress.totalBytes();
+        int currentIndex = Math.max(0, currentVideoIndex + 1);
+        String source = currentVideo == null ? "" : currentVideo.fileName();
+        String destination = currentPlan == null ? "" : currentPlan.destinationFile().toString();
+
+        return shell("Importing", column(
+                text(spinnerFrame() + " Moving " + source).cyan().bold(),
+                text("File " + currentIndex + " of " + Math.max(queuedImportCount, currentIndex)).dim(),
+                text(progressBar(copied, total)).green(),
+                text(formatBytes(copied) + " / " + formatBytes(total)).dim(),
+                text(destination).overflow(Overflow.WRAP_WORD),
+                text("Please wait while the move completes.").dim()
+        ).spacing(1));
+    }
+
     private Element renderResults() {
         List<String> rows = new ArrayList<>();
         if (results.isEmpty()) {
@@ -294,8 +389,9 @@ public final class PlexImporterApp extends ToolkitApp {
             }
         }
 
-        var resultList = list(rows)
-                .selected(Math.max(0, Math.min(resultsCursor, Math.max(0, rows.size() - 1))))
+        var resultWindow = windowedRows(rows, resultsCursor);
+        var resultList = list(resultWindow.rows())
+                .selected(resultWindow.selectedIndex())
                 .highlightColor(Color.GREEN)
                 .highlightSymbol("> ")
                 .title("Import Results")
@@ -353,7 +449,7 @@ public final class PlexImporterApp extends ToolkitApp {
     }
 
     private Element footerLine() {
-        return text("q quit | tab focus | enter confirm").dim();
+        return text("q quit | / search | enter confirm | gg/G jump").dim();
     }
 
     private EventResult handleDirectorySelectionKey(KeyEvent event) {
@@ -361,11 +457,36 @@ public final class PlexImporterApp extends ToolkitApp {
         if (global.isHandled()) {
             return global;
         }
+        List<Integer> visibleIndexes = filteredCandidateIndexes();
+        if (directorySearchActive) {
+            if (event.isConfirm()) {
+                directorySearchActive = false;
+                pendingSecondG = false;
+                return EventResult.HANDLED;
+            }
+            if (handleReadlineKey(directorySearchState, event)) {
+                clampDirectoryCursor();
+                cursorVisible = true;
+                clearError();
+                return EventResult.HANDLED;
+            }
+            return EventResult.UNHANDLED;
+        }
+        if (event.isChar('/')) {
+            directorySearchActive = true;
+            cursorVisible = true;
+            pendingSecondG = false;
+            return EventResult.HANDLED;
+        }
         if (event.isChar(' ')) {
-            if (selectedDirectoryIndexes.contains(directoryCursor)) {
-                selectedDirectoryIndexes.remove(directoryCursor);
+            if (visibleIndexes.isEmpty()) {
+                return EventResult.HANDLED;
+            }
+            int candidateIndex = visibleIndexes.get(directoryCursor);
+            if (selectedDirectoryIndexes.contains(candidateIndex)) {
+                selectedDirectoryIndexes.remove(candidateIndex);
             } else {
-                selectedDirectoryIndexes.add(directoryCursor);
+                selectedDirectoryIndexes.add(candidateIndex);
             }
             clearError();
             return EventResult.HANDLED;
@@ -379,10 +500,13 @@ public final class PlexImporterApp extends ToolkitApp {
             moveToNextVideo();
             return EventResult.HANDLED;
         }
+        if (handleTopBottomMotion(event, visibleIndexes.size(), this::setDirectoryCursor)) {
+            return EventResult.HANDLED;
+        }
         if (isUpKey(event) && directoryCursor > 0) {
             directoryCursor--;
             return EventResult.HANDLED;
-        } else if (isDownKey(event) && directoryCursor < candidateDirectories.size() - 1) {
+        } else if (isDownKey(event) && directoryCursor < visibleIndexes.size() - 1) {
             directoryCursor++;
             return EventResult.HANDLED;
         }
@@ -397,6 +521,9 @@ public final class PlexImporterApp extends ToolkitApp {
 
         int maxIndex = currentOptionsSize() - 1;
         int cursor = currentCursor();
+        if (handleTopBottomMotion(event, maxIndex + 1, this::setCurrentCursor)) {
+            return EventResult.HANDLED;
+        }
         if (isUpKey(event) && cursor > 0) {
             setCurrentCursor(cursor - 1);
             return EventResult.HANDLED;
@@ -413,6 +540,9 @@ public final class PlexImporterApp extends ToolkitApp {
     }
 
     private EventResult handleGlobalKey(KeyEvent event) {
+        if (screen == Screen.IMPORTING || screen == Screen.LOADING) {
+            pendingSecondG = false;
+        }
         if (event.isQuit() || event.isCharIgnoreCase('q')) {
             quit();
             return EventResult.HANDLED;
@@ -563,9 +693,19 @@ public final class PlexImporterApp extends ToolkitApp {
     }
 
     private void executeCurrentPlan(boolean overwrite) {
-        ImportResult result = executor.execute(currentPlan, overwrite);
-        results.add(result);
-        moveToNextVideo();
+        currentImportProgress = new ImportProgress(currentVideo.file(), currentPlan.destinationFile(), 0L, 0L);
+        screen = Screen.IMPORTING;
+        Thread thread = new Thread(() -> {
+            ImportResult result = executor.execute(currentPlan, overwrite, progress ->
+                    onUiThread(() -> currentImportProgress = progress));
+            onUiThread(() -> {
+                currentImportProgress = null;
+                results.add(result);
+                moveToNextVideo();
+            });
+        }, "jpi-import-move");
+        thread.setDaemon(true);
+        thread.start();
     }
 
     private void moveToNextVideo() {
@@ -585,6 +725,7 @@ public final class PlexImporterApp extends ToolkitApp {
         movieYearState.clear();
         movieStandardCursor = 0;
         movieEditionState.clear();
+        directorySearchActive = false;
         seriesCursor = 0;
         newSeriesState.clear();
         seasonState.clear();
@@ -600,10 +741,12 @@ public final class PlexImporterApp extends ToolkitApp {
         queuedVideos.clear();
         results.clear();
         currentVideoIndex = -1;
+        queuedImportCount = 0;
         selectedDirectoryIndexes.stream()
                 .sorted()
                 .map(candidateDirectories::get)
                 .forEach(candidate -> queuedVideos.addAll(candidate.videos()));
+        queuedImportCount = queuedVideos.size();
     }
 
     private List<String> seriesOptions() {
@@ -650,24 +793,7 @@ public final class PlexImporterApp extends ToolkitApp {
     }
 
     private void restartWorkflow() {
-        try {
-            candidateDirectories = scanner.scanCandidateDirectories();
-            existingSeries = scanner.scanExistingSeries();
-            selectedDirectoryIndexes.clear();
-            queuedVideos.clear();
-            results.clear();
-            currentVideo = null;
-            currentVideoIndex = -1;
-            directoryCursor = 0;
-            resultsCursor = 0;
-            finalActionCursor = 0;
-            infoMessage = "SOURCE=" + config.sourceRoot() + "  DEST=" + config.destRoot();
-            clearError();
-            screen = candidateDirectories.isEmpty() ? Screen.EMPTY : Screen.SELECT_DIRECTORIES;
-        } catch (IOException e) {
-            screen = Screen.ERROR;
-            errorMessage = e.getMessage();
-        }
+        beginLibraryScan();
     }
 
     private boolean isInputScreen() {
@@ -803,6 +929,111 @@ public final class PlexImporterApp extends ToolkitApp {
         }
     }
 
+    private void setDirectoryCursor(int value) {
+        directoryCursor = value;
+    }
+
+    private List<Integer> filteredCandidateIndexes() {
+        List<Integer> indexes = new ArrayList<>();
+        String query = directorySearchState.text().trim().toLowerCase();
+        for (int i = 0; i < candidateDirectories.size(); i++) {
+            CandidateDirectory candidate = candidateDirectories.get(i);
+            String displayName = candidate.displayName(config.sourceRoot()).toLowerCase();
+            if (query.isEmpty() || displayName.contains(query)) {
+                indexes.add(i);
+            }
+        }
+        if (directoryCursor >= indexes.size()) {
+            directoryCursor = Math.max(0, indexes.size() - 1);
+        }
+        return indexes;
+    }
+
+    private void clampDirectoryCursor() {
+        int size = filteredCandidateIndexes().size();
+        if (directoryCursor >= size) {
+            directoryCursor = Math.max(0, size - 1);
+        }
+    }
+
+    private void resetDirectorySearch() {
+        directorySearchState.clear();
+        directorySearchActive = false;
+        directoryCursor = 0;
+    }
+
+    private boolean handleTopBottomMotion(KeyEvent event, int size, Consumer<Integer> setter) {
+        if (size <= 0) {
+            pendingSecondG = false;
+            return false;
+        }
+        if (event.code() == KeyCode.CHAR && !event.hasCtrl() && !event.hasAlt()) {
+            if (event.character() == 'G') {
+                pendingSecondG = false;
+                setter.accept(size - 1);
+                return true;
+            }
+            if (event.character() == 'g') {
+                if (pendingSecondG) {
+                    pendingSecondG = false;
+                    setter.accept(0);
+                    return true;
+                }
+                pendingSecondG = true;
+                return true;
+            }
+        }
+        pendingSecondG = false;
+        return false;
+    }
+
+    private WindowedRows windowedRows(List<String> rows, int selectedIndex) {
+        if (rows.isEmpty()) {
+            return new WindowedRows(List.of(), 0);
+        }
+        int clampedSelected = Math.max(0, Math.min(selectedIndex, rows.size() - 1));
+        int visibleCount = Math.min(MAX_VISIBLE_ROWS, rows.size());
+        int start = Math.max(0, clampedSelected - (visibleCount / 2));
+        if (start + visibleCount > rows.size()) {
+            start = rows.size() - visibleCount;
+        }
+        List<String> visibleRows = rows.subList(start, start + visibleCount);
+        return new WindowedRows(visibleRows, clampedSelected - start);
+    }
+
+    private String spinnerFrame() {
+        return SPINNER_FRAMES.get(spinnerFrameIndex);
+    }
+
+    private String progressBar(long copied, long total) {
+        int width = 30;
+        if (total <= 0L) {
+            return "[" + "=".repeat(width / 3) + " ".repeat(width - (width / 3)) + "]";
+        }
+        int filled = (int) Math.round((Math.min(copied, total) / (double) total) * width);
+        filled = Math.max(0, Math.min(width, filled));
+        return "[" + "=".repeat(filled) + " ".repeat(width - filled) + "]";
+    }
+
+    private String formatBytes(long bytes) {
+        if (bytes < 1024L) {
+            return bytes + " B";
+        }
+        double kb = bytes / 1024.0;
+        if (kb < 1024.0) {
+            return String.format("%.1f KB", kb);
+        }
+        double mb = kb / 1024.0;
+        if (mb < 1024.0) {
+            return String.format("%.1f MB", mb);
+        }
+        double gb = mb / 1024.0;
+        return String.format("%.2f GB", gb);
+    }
+
+    private record WindowedRows(List<String> rows, int selectedIndex) {
+    }
+
     private enum Screen {
         LOADING,
         EMPTY,
@@ -819,6 +1050,7 @@ public final class PlexImporterApp extends ToolkitApp {
         TV_EPISODE,
         CONFIRM_DESTINATION,
         CONFLICT,
+        IMPORTING,
         RESULTS
     }
 }

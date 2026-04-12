@@ -28,11 +28,17 @@ public final class LibraryScanner {
             for (Path directory : directories) {
                 List<SourceVideo> videos = listVideos(directory);
                 if (!videos.isEmpty()) {
-                    results.add(new CandidateDirectory(directory, videos));
+                    results.add(new CandidateDirectory(
+                            directory,
+                            videos,
+                            Files.getLastModifiedTime(directory).toMillis()));
                 }
             }
         }
-        results.sort(Comparator.comparing(dir -> dir.path().toString()));
+        results.sort(Comparator
+                .comparingLong(CandidateDirectory::lastModifiedMillis)
+                .reversed()
+                .thenComparing(dir -> dir.path().toString()));
         return results;
     }
 

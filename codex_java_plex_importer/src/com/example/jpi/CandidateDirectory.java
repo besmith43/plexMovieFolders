@@ -3,7 +3,7 @@ package com.example.jpi;
 import java.nio.file.Path;
 import java.util.List;
 
-public record CandidateDirectory(Path path, List<SourceVideo> videos) {
+public record CandidateDirectory(Path path, List<SourceVideo> videos, long lastModifiedMillis) {
     public String displayName(Path sourceRoot) {
         Path normalized = path.toAbsolutePath().normalize();
         Path root = sourceRoot.toAbsolutePath().normalize();

@@ -1,0 +1,14 @@
+clean:
+    ./scripts/clean.sh
+
+build:
+    ./scripts/build.sh
+
+test:
+    ./scripts/test.sh
+
+run:
+    ./scripts/run.sh
+
+push:
+    ./scripts/push.sh

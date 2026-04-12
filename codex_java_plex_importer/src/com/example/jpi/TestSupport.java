@@ -17,7 +17,11 @@ public final class TestSupport {
     }
 
     public static void touch(Path path) throws IOException {
+        write(path, "x");
+    }
+
+    public static void write(Path path, String value) throws IOException {
         Files.createDirectories(path.getParent());
-        Files.writeString(path, "x");
+        Files.writeString(path, value);
     }
 }
