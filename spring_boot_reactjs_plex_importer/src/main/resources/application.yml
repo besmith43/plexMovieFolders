@@ -1,0 +1,7 @@
+app:
+  source: ${SOURCE:/Volumes/LightSpeed/containers/sabnzbd/config/Downloads/complete}
+  dest: ${DEST:/Volumes/Content_Vault/Plex}
+
+spring:
+  mvc:
+    static-path-pattern: /**

@@ -1,0 +1,16 @@
+.gradle/
+.gradle-local/
+build/
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/test-results/
+.idea/
+.DS_Store
+test_root_dir/
+test_dest_dir/
+.playwright-mcp/
+
+
+
+

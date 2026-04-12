@@ -1,0 +1,13 @@
+.git
+.gradle
+.idea
+.DS_Store
+frontend/node_modules
+frontend/dist
+frontend/playwright-report
+frontend/test-results
+test_root_dir
+test_dest_dir
+build/*
+!build/libs/
+!build/libs/plex-importer.war
