@@ -33,7 +33,3 @@ export async function executeImport(payload) {
     body: JSON.stringify(payload),
   }));
 }
-
-export function createImportEventSource() {
-  return new EventSource('/api/events');
-}

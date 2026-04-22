@@ -25,6 +25,7 @@ fi
 
 export SOURCE=test_root_dir
 export DEST=test_dest_dir
+export SERVER_PORT=8080
 
 if [ "$PUBLISH_LOCAL_NETWORK" -eq 1 ]; then
   LAN_IP="$(ifconfig 2>/dev/null | awk '/inet / && $2 != "127.0.0.1" { print $2; exit }')"
@@ -32,7 +33,7 @@ if [ "$PUBLISH_LOCAL_NETWORK" -eq 1 ]; then
   if [ -n "${LAN_IP:-}" ]; then
     echo "Local network URL: http://$LAN_IP:8080"
   fi
-  "$GRADLE_CMD" bootRun --args='--server.address=0.0.0.0'
+  "$GRADLE_CMD" --no-daemon bootRun --args='--server.address=0.0.0.0'
 else
-  "$GRADLE_CMD" bootRun
+  "$GRADLE_CMD" --no-daemon bootRun
 fi

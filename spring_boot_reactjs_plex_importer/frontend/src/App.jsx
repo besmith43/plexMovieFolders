@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createImportEventSource, executeImport, fetchDirectories, fetchTvSeries, previewImport } from './api';
+import { executeImport, fetchDirectories, fetchTvSeries, previewImport } from './api';
 
 const NEW_SERIES = '__NEW_SERIES__';
 
@@ -35,29 +35,6 @@ function App() {
     loadInitialData();
   }, []);
 
-  useEffect(() => {
-    if (typeof EventSource === 'undefined') {
-      return undefined;
-    }
-
-    const eventSource = createImportEventSource();
-    const handleImportComplete = async (event) => {
-      const notification = JSON.parse(event.data);
-      setToast(notification);
-      clearToastTimer();
-      toastTimerRef.current = window.setTimeout(() => setToast(null), 5000);
-      await loadInitialData();
-    };
-
-    eventSource.addEventListener('import-complete', handleImportComplete);
-
-    return () => {
-      clearToastTimer();
-      eventSource.removeEventListener('import-complete', handleImportComplete);
-      eventSource.close();
-    };
-  }, []);
-
   async function loadInitialData() {
     setBusy(true);
     setError('');
@@ -90,19 +67,19 @@ function App() {
     setError('');
   }
 
-  function clearToastTimer() {
-    if (toastTimerRef.current !== null) {
-      window.clearTimeout(toastTimerRef.current);
-      toastTimerRef.current = null;
-    }
-  }
-
   function updateField(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
     setPreview(null);
     setResult(null);
     if (name === 'contentType') {
       setConflictAction('SKIP');
+    }
+  }
+
+  function clearToastTimer() {
+    if (toastTimerRef.current !== null) {
+      window.clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = null;
     }
   }
 
@@ -130,8 +107,12 @@ function App() {
       const payload = buildPayload(form);
       const importResponse = await executeImport({ preview: payload, conflictAction });
       setResult(importResponse);
+      setToast(importResponse);
+      clearToastTimer();
+      toastTimerRef.current = window.setTimeout(() => setToast(null), 5000);
       setPreview(null);
       resetWorkflow('', '');
+      await loadInitialData();
     } catch (submitError) {
       setError(submitError.message);
     } finally {

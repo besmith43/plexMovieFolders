@@ -1,5 +1,5 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, test, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, test, vi } from 'vitest';
 import App from './App';
 
 const apiMocks = vi.hoisted(() => ({
@@ -23,48 +23,14 @@ const apiMocks = vi.hoisted(() => ({
     sourceDirectoryDeleted: true,
     message: 'Import completed successfully.',
   })),
-  createImportEventSource: vi.fn(),
 }));
 
 vi.mock('./api', () => ({
   ...apiMocks,
 }));
 
-class FakeEventSource {
-  constructor() {
-    this.listeners = new Map();
-  }
-
-  addEventListener(type, handler) {
-    this.listeners.set(type, handler);
-  }
-
-  removeEventListener(type) {
-    this.listeners.delete(type);
-  }
-
-  emit(type, payload) {
-    const handler = this.listeners.get(type);
-    if (handler) {
-      handler({ data: JSON.stringify(payload) });
-    }
-  }
-
-  close() {}
-}
-
-let eventSource;
-const originalEventSource = globalThis.EventSource;
-
-beforeEach(() => {
-  eventSource = new FakeEventSource();
-  apiMocks.createImportEventSource.mockReturnValue(eventSource);
-  globalThis.EventSource = FakeEventSource;
-});
-
 afterEach(() => {
   vi.clearAllMocks();
-  globalThis.EventSource = originalEventSource;
 });
 
 test('renders workflow and previews a movie import', async () => {
@@ -79,23 +45,4 @@ test('renders workflow and previews a movie import', async () => {
   fireEvent.click(screen.getByText('Preview destination'));
 
   await waitFor(() => screen.getByText('/dest/Movies/Dune (2021)/Dune (2021).mkv'));
-});
-
-test('shows a toast when an import-complete event arrives', async () => {
-  render(<App />);
-
-  await waitFor(() => screen.getByText('dir1'));
-
-  await act(async () => {
-    eventSource.emit('import-complete', {
-      status: 'MOVED',
-      destinationPath: '/dest/Movies/Dune (2021)/Dune (2021).mkv',
-      sourceDirectoryDeleted: true,
-      message: 'Import completed successfully.',
-    });
-  });
-
-  await waitFor(() => screen.getByRole('status'));
-  expect(screen.getByText('Import finished')).toBeInTheDocument();
-  expect(screen.getByText('Import completed successfully.')).toBeInTheDocument();
 });

@@ -18,7 +18,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   webServer: {
-    command: 'bash -lc "export SOURCE=test_root_dir DEST=test_dest_dir; ./gradlew bootRun"',
+    command: 'bash -lc "export SOURCE=test_root_dir DEST=test_dest_dir SERVER_PORT=8080; ./gradlew --no-daemon bootRun"',
     cwd: repoRoot,
     port: 8080,
     reuseExistingServer: false,

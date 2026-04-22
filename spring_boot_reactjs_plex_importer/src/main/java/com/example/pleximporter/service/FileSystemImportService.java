@@ -1,7 +1,6 @@
 package com.example.pleximporter.service;
 
 import com.example.pleximporter.config.AppProperties;
-import com.example.pleximporter.dto.ImportNotification;
 import com.example.pleximporter.dto.ImportRequest;
 import com.example.pleximporter.dto.ImportResponse;
 import com.example.pleximporter.dto.PreviewRequest;
@@ -37,12 +36,10 @@ public class FileSystemImportService {
 
     private final Path sourceRoot;
     private final Path destRoot;
-    private final ImportEventStreamService importEventStreamService;
 
-    public FileSystemImportService(AppProperties appProperties, ImportEventStreamService importEventStreamService) {
+    public FileSystemImportService(AppProperties appProperties) {
         this.sourceRoot = Path.of(appProperties.source()).toAbsolutePath().normalize();
         this.destRoot = Path.of(appProperties.dest()).toAbsolutePath().normalize();
-        this.importEventStreamService = importEventStreamService;
     }
 
     public List<SourceDirectoryDto> listSourceDirectories() {
@@ -101,10 +98,8 @@ public class FileSystemImportService {
             Files.createDirectories(preview.destinationPath().getParent());
             if (preview.collision()) {
                 if (conflictAction == ConflictAction.SKIP) {
-                    ImportResponse response = new ImportResponse("SKIPPED", preview.destinationPath().toString(), false,
+                    return new ImportResponse("SKIPPED", preview.destinationPath().toString(), false,
                             "Destination already exists. File was skipped.");
-                    importEventStreamService.publishImportComplete(ImportNotification.from(response));
-                    return response;
                 }
                 Files.move(preview.sourceFile(), preview.destinationPath(), StandardCopyOption.REPLACE_EXISTING);
             } else {
@@ -112,10 +107,8 @@ public class FileSystemImportService {
             }
 
             boolean deletedSourceDir = cleanupSourceDirectory(preview.sourceDirectory());
-            ImportResponse response = new ImportResponse("MOVED", preview.destinationPath().toString(), deletedSourceDir,
+            return new ImportResponse("MOVED", preview.destinationPath().toString(), deletedSourceDir,
                     "Import completed successfully.");
-            importEventStreamService.publishImportComplete(ImportNotification.from(response));
-            return response;
         } catch (IOException e) {
             throw new UncheckedIOException("Failed to import file", e);
         }
