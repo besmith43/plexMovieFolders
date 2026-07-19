@@ -86,6 +86,11 @@ select {
   padding: 20px;
 }
 
+.source-panel {
+  display: flex;
+  flex-direction: column;
+}
+
 .panel-header,
 .step-block h2 {
   display: flex;
@@ -109,6 +114,11 @@ select {
 .directory-list {
   display: grid;
   gap: 10px;
+  max-height: calc((4.9rem * 8) + (10px * 7));
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
 }
 
 .directory-item {

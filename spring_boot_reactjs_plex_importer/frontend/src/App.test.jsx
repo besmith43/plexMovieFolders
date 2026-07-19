@@ -46,3 +46,26 @@ test('renders workflow and previews a movie import', async () => {
 
   await waitFor(() => screen.getByText('/dest/Movies/Dune (2021)/Dune (2021).mkv'));
 });
+
+test('renders source directories inside a scrollable list panel', async () => {
+  apiMocks.fetchDirectories.mockResolvedValueOnce(
+    Array.from({ length: 10 }, (_, index) => ({
+      name: `dir${index + 1}`,
+      absolutePath: `/source/dir${index + 1}`,
+      videoFiles: [
+        {
+          fileName: `movie${index + 1}.mkv`,
+          extension: 'mkv',
+          absolutePath: `/source/dir${index + 1}/movie${index + 1}.mkv`,
+        },
+      ],
+    })),
+  );
+
+  render(<App />);
+
+  const list = await screen.findByLabelText('Source directories list');
+  expect(list).toBeInTheDocument();
+  expect(list.className).toContain('directory-list');
+  expect(screen.getAllByRole('button', { name: /dir\d+\s+1 video file\(s\)/ })).toHaveLength(10);
+});

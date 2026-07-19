@@ -1,0 +1,28 @@
+<html>
+
+{% include "header.html" %}
+
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+	<div class="container">
+		<div class="row">
+			<h1>hello world from html</h1>
+
+			<p>Source: {{ source }}</p>
+			<p>Destination: {{ destination }}</p>
+
+			<select name="selected_content" hx-post="/content" hx-trigger="change" hx-target="#content_result">
+				<option value='-1'>Select Content</option>
+				{% for dir in dirs %}
+				<option value="{{ dir }}">{{ dir.name }}</option>
+				{% endfor %}
+			</select>
+
+			<div id="content_result"></div>
+
+		</div>
+	</div>
+</body>
+
+<!-- {% include "footer.html" %} -->
+
+</html>

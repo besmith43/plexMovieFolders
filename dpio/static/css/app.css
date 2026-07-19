@@ -1,0 +1,11 @@
+[x-cloak] {
+	display: none !important;
+}
+
+.htmx-indicator {
+	display: none;
+}
+
+.htmx-request .htmx-indicator {
+	display: inline-block;
+}

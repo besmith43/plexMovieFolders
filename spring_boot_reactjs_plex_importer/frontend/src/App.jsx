@@ -150,7 +150,7 @@ function App() {
             </div>
             {busy ? <p>Scanning source tree…</p> : null}
             {!busy && directories.length === 0 ? <p>No directories with supported video files were found.</p> : null}
-            <div className="directory-list">
+            <div className="directory-list" aria-label="Source directories list">
               {directories.map((directory) => {
                 const isSelected = directory.absolutePath === form.sourceDirectory;
                 return (
