@@ -13,3 +13,5 @@ test_dest_dir
 test_root_dir
 
 *.sqlite3
+
+.env
