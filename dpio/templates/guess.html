@@ -2,7 +2,7 @@
 	<label for="content_name">Suggested Content Name:</label>
 	<input id="content_name" type="text" name="content_name" value="{{ guess|escape }}">
 	<button hx-post="submit" hx-trigger="click" hx-include="#content_selection, #type_selection, #content_name"
-		hx-indicator="submit_spinner" hx-on::after-on-load="location.reload()">Submit</button>
+		hx-indicator="#submit_spinner" hx-on::after-on-load="location.reload()">Submit</button>
 
 	<img id="submit_spinner" class="htmx-indicator fa-solid fa-spinner" alt="Loading..." />
 </div>
