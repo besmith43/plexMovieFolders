@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
 
-scp go-plex-import nas:home/bin
+scp ppi.py plexmini4:.local/bin/ppi
+# scp .env plexmini4:.local/bin/.env
 

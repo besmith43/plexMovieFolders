@@ -10,14 +10,18 @@
 		<div x-show="selected" x-cloak>
 			<select id="type_selection" name="type_selection" hx-post="/guess" hx-trigger="change"
 				hx-target="#guess_result" hx-include="#content_selection" hx-indicator="#guess_spinner"
-				hx-on::after-request="document.getElementById('guess_spinner').style.display = 'none'">
+				>
 				<option value="">Select Content Type</option>
 				<option value="movie">Movie <i class="fa-solid fa-wand-magic-sparkles"></i></option>
 				<option value="tvshow">TV Show <i class="fa-solid fa-wand-magic-sparkles"></i></option>
 			</select>
 
-			<img id="guess_spinner" class="htmx-indicator fa-solid fa-spinner fa-spin" alt="Loading..." />
+            <span id="guess_spinner" class="htmx-indicator" aria-label="Loading">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+            </span>
 
+            <br/>
+            <br/>
 			<div id="guess_result">
 			</div>
 		</div>

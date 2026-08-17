@@ -5,7 +5,7 @@
 # exit 0
 
 
-./plex-importer.py ./test_root_dir ./test_dest_dir
+./ppi.py ./test_root_dir ./test_dest_dir
 exit 0
 
 

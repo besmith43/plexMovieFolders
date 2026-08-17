@@ -7,6 +7,9 @@
 		<div class="row">
 			<h1>hello world from html</h1>
 
+            <i class="fa-brands fa-apple"></i>
+            <i class="fa-solid fa-spinner fa-spin"></i>
+
 			<p>Source: {{ source }}</p>
 			<p>Destination: {{ destination }}</p>
 
@@ -16,7 +19,8 @@
 				<option value="{{ dir }}">{{ dir.name }}</option>
 				{% endfor %}
 			</select>
-
+            <br/>
+            <br/>
 			<div id="content_result"></div>
 
 		</div>
